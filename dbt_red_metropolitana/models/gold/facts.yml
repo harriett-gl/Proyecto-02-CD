@@ -1,60 +1,94 @@
 version: 2
-
 models:
-  - name: fct_abordajes
-    description: Un abordaje válido de Transmetro, Transurbano o Aerómetro por fila.
-
-    columns:
-      - name: abordaje_sk
-        data_tests:
-          - not_null
-          - unique
-
-      - name: modo_sk
-        data_tests:
-          - not_null
-
-      - name: usuario_sk
-        data_tests:
-          - not_null
-
-      - name: fecha_sk
-        data_tests:
-          - not_null
-
-      - name: hora_sk
-        data_tests:
-          - not_null
-
-      - name: cantidad_abordajes
-        data_tests:
-          - not_null
-
-  - name: fct_viajes_metroriel
-    description: Un viaje completo y válido de MetroRiel por fila.
-
-    columns:
-      - name: viaje_sk
-        data_tests:
-          - not_null
-          - unique
-
-      - name: modo_sk
-        data_tests:
-          - not_null
-
-      - name: usuario_sk
-        data_tests:
-          - not_null
-
-      - name: fecha_sk
-        data_tests:
-          - not_null
-
-      - name: duracion_segundos
-        data_tests:
-          - not_null
-
-      - name: cantidad_viajes
-        data_tests:
-          - not_null
+- name: fct_abordajes
+  description: Un abordaje válido de Transmetro, Transurbano o Aerometro por fila.
+  columns:
+  - name: abordaje_sk
+    data_tests:
+    - not_null
+    - unique
+    description: Clave única MD5 del modo y evento original.
+    meta:
+      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
+      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
+  - name: modo_sk
+    data_tests:
+    - not_null
+    description: Clave del modo de transporte.
+    meta:
+      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
+      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
+  - name: usuario_sk
+    data_tests:
+    - not_null
+    description: Clave seudonimizada del usuario.
+    meta:
+      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
+      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
+  - name: fecha_sk
+    data_tests:
+    - not_null
+    description: Fecha del abordaje en formato YYYYMMDD.
+    meta:
+      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
+      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
+  - name: hora_sk
+    data_tests:
+    - not_null
+    description: Hora local del abordaje.
+    meta:
+      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
+      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
+  - name: cantidad_abordajes
+    data_tests:
+    - not_null
+    description: Indicador unitario de abordaje; valor 1.
+    meta:
+      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
+      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
+- name: fct_viajes_metroriel
+  description: Un viaje completo y válido de MetroRiel por fila.
+  columns:
+  - name: viaje_sk
+    data_tests:
+    - not_null
+    - unique
+    description: Clave MD5 generada a partir del identificador del viaje.
+    meta:
+      fuente: silver.metroriel_viajes
+      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
+  - name: modo_sk
+    data_tests:
+    - not_null
+    description: Clave correspondiente a MetroRiel.
+    meta:
+      fuente: silver.metroriel_viajes
+      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
+  - name: usuario_sk
+    data_tests:
+    - not_null
+    description: Clave seudonimizada del usuario.
+    meta:
+      fuente: silver.metroriel_viajes
+      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
+  - name: fecha_sk
+    data_tests:
+    - not_null
+    description: Fecha de entrada en formato YYYYMMDD.
+    meta:
+      fuente: silver.metroriel_viajes
+      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
+  - name: duracion_segundos
+    data_tests:
+    - not_null
+    description: Duración del viaje expresada en segundos.
+    meta:
+      fuente: silver.metroriel_viajes
+      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
+  - name: cantidad_viajes
+    data_tests:
+    - not_null
+    description: Indicador unitario de viaje; valor 1.
+    meta:
+      fuente: silver.metroriel_viajes
+      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.

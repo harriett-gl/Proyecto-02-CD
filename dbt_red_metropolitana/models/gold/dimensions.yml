@@ -1,49 +1,81 @@
 version: 2
-
 models:
-  - name: dim_modo
-    columns:
-      - name: modo_sk
-        data_tests:
-          - not_null
-          - unique
-      - name: modo_nombre
-        data_tests:
-          - not_null
-          - unique
-
-  - name: dim_hora
-    columns:
-      - name: hora_sk
-        data_tests:
-          - not_null
-          - unique
-
-  - name: dim_fecha
-    columns:
-      - name: fecha_sk
-        data_tests:
-          - not_null
-          - unique
-      - name: fecha
-        data_tests:
-          - not_null
-          - unique
-
-  - name: dim_usuario
-    columns:
-      - name: usuario_sk
-        data_tests:
-          - not_null
-          - unique
-
-  - name: dim_zona
-    columns:
-      - name: zona_sk
-        data_tests:
-          - not_null
-          - unique
-      - name: zona_nombre
-        data_tests:
-          - not_null
-          - unique
+- name: dim_modo
+  columns:
+  - name: modo_sk
+    data_tests:
+    - not_null
+    - unique
+    description: Identificador numérico del modo de transporte.
+    meta:
+      fuente: Catálogo definido en dim_modo.sql
+      transformacion: Asignación de claves numéricas a cada modo.
+  - name: modo_nombre
+    data_tests:
+    - not_null
+    - unique
+    description: Nombre estandarizado del operador.
+    meta:
+      fuente: Catálogo definido en dim_modo.sql
+      transformacion: Asignación de claves numéricas a cada modo.
+  description: Catálogo de los cuatro modos de transporte.
+- name: dim_hora
+  columns:
+  - name: hora_sk
+    data_tests:
+    - not_null
+    - unique
+    description: Clave de la hora en formato entero de 0 a 23.
+    meta:
+      fuente: Serie de horas generada en PostgreSQL
+      transformacion: Generación de horas de 0 a 23 y clasificación horaria.
+  description: Dimensión horaria con 24 horas y clasificación de franjas.
+- name: dim_fecha
+  columns:
+  - name: fecha_sk
+    data_tests:
+    - not_null
+    - unique
+    description: Clave de fecha en formato YYYYMMDD.
+    meta:
+      fuente: Fechas de los cuatro operadores en Silver
+      transformacion: Generación de calendario entre la fecha mínima y máxima.
+  - name: fecha
+    data_tests:
+    - not_null
+    - unique
+    description: Fecha calendario correspondiente a la clave.
+    meta:
+      fuente: Fechas de los cuatro operadores en Silver
+      transformacion: Generación de calendario entre la fecha mínima y máxima.
+  description: Calendario de fechas del período registrado en la red.
+- name: dim_usuario
+  columns:
+  - name: usuario_sk
+    data_tests:
+    - not_null
+    - unique
+    description: Identificador seudonimizado del usuario.
+    meta:
+      fuente: silver.dim_usuario_conformado
+      transformacion: Agrupación por usuario y agregación de atributos y modos.
+  description: Usuarios conformados y sus modos de transporte identificados.
+- name: dim_zona
+  columns:
+  - name: zona_sk
+    data_tests:
+    - not_null
+    - unique
+    description: Identificador de la zona.
+    meta:
+      fuente: silver.dim_zona_conformada
+      transformacion: Proyección de las claves y nombres conformados.
+  - name: zona_nombre
+    data_tests:
+    - not_null
+    - unique
+    description: Nombre normalizado de la zona.
+    meta:
+      fuente: silver.dim_zona_conformada
+      transformacion: Proyección de las claves y nombres conformados.
+  description: Catálogo de zonas geográficas normalizadas.
