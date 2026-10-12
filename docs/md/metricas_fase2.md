@@ -1,12 +1,12 @@
 # Métricas — Fase 02
 
-Cifras medidas sobre una corrida completa del flujo (`orchestration/flow_red_metropolitana.py`)
+Cifras medidas sobre una corrida completa del flujo (`../../orchestration/flow_red_metropolitana.py`)
 con los datos de `generar_red_metropolitana.py` (semilla 2026, escala 0.08). Las métricas de
 la Fase 01 siguen en [metricas_fase1.md](metricas_fase1.md).
 
 ## Idempotencia (verificación previa a la presentación)
 
-Base de datos vacía, `lake/` vacío, tres corridas consecutivas:
+Base de datos vacía, `../../lake` vacío, tres corridas consecutivas:
 
 | Corrida | Estado | Staging | Silver | Gold | Cuarentena | Pruebas dbt |
 |---|---|---:|---:|---:|---:|---|

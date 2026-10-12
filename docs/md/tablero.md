@@ -19,7 +19,7 @@ muestra el camino completo, por ejemplo para "Demanda por hora":
 
 `Demanda por hora` → `gold.fct_abordajes` → `silver.transmetro_validaciones` →
 `silver.stg_transmetro` → `staging.transmetro_validaciones` →
-`lake/bronze/streaming/transmetro/` → `datos_red/transmetro_validaciones.csv`.
+`../../lake/bronze/streaming/transmetro` → `datos_red/transmetro_validaciones.csv`.
 
 ## Actualización del libro de Tableau (Fase 02)
 

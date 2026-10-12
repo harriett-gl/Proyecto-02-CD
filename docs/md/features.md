@@ -3,7 +3,7 @@
 | Elemento | Valor |
 |---|---|
 | Tabla | `features.features_usuario_movilidad` |
-| Modelo dbt | `dbt_red_metropolitana/models/features/features_usuario_movilidad.sql` |
+| Modelo dbt | `../../dbt_red_metropolitana/models/features/features_usuario_movilidad.sql` |
 | Grano | Una fila por usuario (`usuario_sk`) con al menos un viaje válido |
 | Fuente | **Solo Silver**: `transmetro_validaciones`, `transurbano_transacciones`, `metroriel_viajes`, `aerometro_boardings` y `dim_usuario_conformado` |
 | **Fecha de corte declarada** | **2026-07-15** (último día con datos). Variable `fecha_corte` en `dbt_project.yml` |

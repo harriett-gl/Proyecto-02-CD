@@ -7,9 +7,9 @@ del proyecto (sección 3.3).
 ## 1. Nada de credenciales en el repositorio
 
 - Las credenciales de PostgreSQL y la sal de seudonimización se leen de variables
-  de entorno (`.env`), cargadas por `python-dotenv` en los scripts y por
+  de entorno (`../../.env`), cargadas por `python-dotenv` en los scripts y por
   `env_var()` en `profiles.yml` de dbt.
-- `.env` está en `.gitignore`; el repositorio solo trae `.env.example` con
+- `../../.env` está en `.gitignore`; el repositorio solo trae `.env.example` con
   valores de ejemplo (`tu_usuario`, `tu_contrasena`, `cambie_este_valor...`).
 - **Por qué:** quien clona el repositorio no obtiene acceso a la base de datos, y
   cada integrante puede usar credenciales propias.
@@ -21,7 +21,7 @@ del proyecto (sección 3.3).
 - En `silver.dim_usuario_conformado` se calcula
   `usuario_sk = md5(USUARIO_SALT || llave_normalizada)`. Gold, el tablero y la
   tabla de features solo ven `usuario_sk`.
-- La sal es secreta y vive en `.env`. Sin ella, un md5 de un número de 10 dígitos
+- La sal es secreta y vive en `../../.env`. Sin ella, un md5 de un número de 10 dígitos
   se podría revertir probando todos los valores posibles; con ella, conocer la
   tarjeta no permite encontrar su fila en Gold.
 - El tablero no necesita saber *qué tarjeta* es, solo que dos abordajes son de
