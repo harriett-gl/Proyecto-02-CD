@@ -1,54 +1,101 @@
-# Proyecto 01 — Red Metropolitana de Transporte
 
-Pipeline de datos desarrollado para integrar, transformar, analizar y visualizar información de los operadores **Transmetro, Transurbano, Aerometro y MetroRiel**.
+# 🚇 Proyecto 01 — Red Metropolitana de Transporte
 
-El proyecto integra las **Fases 01 y 02** de la Red Metropolitana. La primera fase implementa la arquitectura de datos, ingestas batch, streaming y CDC, almacenamiento Bronze, transformaciones con dbt y el modelo dimensional Gold. La segunda fase amplía la solución mediante análisis de movilidad, generación de features, identificación de usuarios multimodales y visualizaciones interactivas en Tableau.
-
----
-
-## Arquitectura
-
-El flujo general del proyecto es:
-
-1. Ingesta batch, streaming y CDC.
-2. Almacenamiento de archivos Parquet en la capa Bronze.
-3. Carga de información al esquema Staging de PostgreSQL.
-4. Limpieza, validación y conformación en Silver.
-5. Envío de registros inválidos a Quarantine.
-6. Construcción del modelo dimensional Gold.
-7. Generación de features de movilidad.
-8. Validaciones de calidad mediante dbt.
-9. Análisis de demanda y comportamiento multimodal.
-10. Visualización de resultados mediante Tableau.
-11. Registro de métricas en el esquema Audit.
-12. Orquestación mediante Prefect.
+**Universidad Rafael Landívar**  
+**Curso:** Ciencia de Datos  
+**Proyecto:** Red Metropolitana de Transporte  
+**Fases desarrolladas:** Fase 01 y Fase 02
 
 ---
 
-## Tecnologías utilizadas
+## 📌 Descripción general
 
-- Python 3.12
-- PostgreSQL 16
-- Docker y Docker Compose
-- Apache Kafka
-- dbt Core
-- dbt-postgres
-- Prefect
-- PyArrow
-- Pandas
-- Psycopg
-- Parquet
-- Tableau Desktop
+El proyecto **Red Metropolitana de Transporte** tiene como finalidad integrar, transformar, validar, analizar y visualizar información de movilidad correspondiente a cuatro operadores de transporte:
+
+- Transmetro
+- Transurbano
+- MetroRiel
+- Aerometro
+
+La solución utiliza una arquitectura de ingeniería de datos basada en capas, con el propósito de garantizar la calidad, trazabilidad y disponibilidad de la información para su posterior análisis.
+
+El proyecto se desarrolla en dos fases:
+
+- **Fase 01:** construcción de la arquitectura de datos, ingesta, transformación y modelo dimensional.
+- **Fase 02:** implementación de features analíticas, análisis de demanda, cobertura territorial, validaciones y visualización de resultados.
 
 ---
 
-## Estructura principal
+## 🛠️ Tecnologías utilizadas
+
+| Tecnología | Función |
+|---|---|
+| Python 3.12 | Ingesta, procesamiento y análisis de datos |
+| PostgreSQL | Almacenamiento de información |
+| Docker | Contenedores y servicios |
+| Apache Kafka | Procesamiento de eventos de streaming |
+| dbt Core | Transformación y validación de datos |
+| Prefect | Orquestación del pipeline |
+| PyArrow | Procesamiento de archivos Parquet |
+| Pandas | Manipulación y análisis de datos |
+| Psycopg | Conexión con PostgreSQL |
+| Tableau Desktop | Visualización de información |
+| Git y GitHub | Control de versiones |
+
+---
+
+# 🏗️ Arquitectura del proyecto
+
+El procesamiento de datos sigue la siguiente arquitectura:
+
+```text
+FUENTES DE DATOS
+       |
+       v
+INGESTA DE DATOS
+(Batch / Streaming / CDC)
+       |
+       v
+BRONZE
+(Archivos Parquet)
+       |
+       v
+STAGING
+(PostgreSQL)
+       |
+       v
+SILVER
+(Limpieza y normalización)
+       |
+       +------> QUARANTINE
+       |        (Registros inválidos)
+       v
+GOLD
+(Modelo dimensional)
+       |
+       +------> FEATURES
+       |        (Análisis de movilidad)
+       |
+       v
+REPORTES ANALÍTICOS
+(Demanda y cobertura)
+       |
+       v
+TABLEAU
+(Dashboards)
+```
+
+La solución también incorpora un esquema de auditoría y mecanismos de orquestación mediante Prefect.
+
+---
+
+# 📁 Estructura del proyecto
 
 ```text
 Proyecto01-Fase01/
 │
 ├── datos_red/
-│   └── fuentes originales del proyecto
+│   └── Fuentes originales del proyecto
 │
 ├── lake/
 │   └── bronze/
@@ -61,25 +108,32 @@ Proyecto01-Fase01/
 │   ├── ingesta_batch.py
 │   ├── ingesta_cdc.py
 │   ├── stream_consumer.py
-│   └── stream_producer.py
+│   ├── stream_producer.py
+│   ├── generar_diccionario.py
+│   └── medir_consultas_tablero.py
 │
 ├── orchestration/
 │   └── flow_red_metropolitana.py
 │
 ├── dbt_red_metropolitana/
-│   ├── analyses/
-│   ├── logs/
 │   ├── macros/
+│   │   └── definiciones_oficiales.sql
+│   │
 │   ├── models/
-│   │   ├── features/
-│   │   │   ├── features.yml
-│   │   │   └── features_usuario_movilidad.sql
-│   │   ├── gold/
-│   │   ├── quarantine/
+│   │   ├── staging/
 │   │   ├── silver/
-│   │   └── staging/
-│   ├── seeds/
-│   ├── snapshots/
+│   │   ├── quarantine/
+│   │   ├── gold/
+│   │   │   ├── rpt_demanda_red.sql
+│   │   │   ├── rpt_cobertura_zona.sql
+│   │   │   └── reportes.yml
+│   │   │
+│   │   ├── features/
+│   │   │   ├── features_usuario_movilidad.sql
+│   │   │   └── features.yml
+│   │   │
+│   │   └── exposures.yml
+│   │
 │   ├── tests/
 │   ├── dbt_project.yml
 │   └── profiles.yml
@@ -87,21 +141,18 @@ Proyecto01-Fase01/
 ├── docs/
 │   ├── evidencias/
 │   │   ├── Proyecto 01 - Fase 01.pdf
-│   │   ├── Proyecto 01 - Fase 01.pptx
 │   │   ├── Proyecto 01 - Fase 02.pdf
-│   │   ├── Proyecto 01 - Fase 02.pptx
 │   │   └── Proyecto 01 - Fase 02.twb
-│   ├── Fase 02.sql
-│   ├── ddl_gold.sql
-│   ├── diagrama_modelo.md
-│   ├── matriz_bus.md
-│   ├── medicion_capas.sql
-│   ├── metricas.sql
+│   │
+│   ├── diccionario_datos.md
+│   ├── features.md
+│   ├── gobernanza.md
 │   ├── metricas_fase1.md
-│   └── validaciones.sql
-│
-├── logs/
-│   └── registros generados durante la ejecución
+│   ├── metricas_fase2.md
+│   ├── recomendacion.md
+│   ├── seguridad.md
+│   ├── tablero.md
+│   └── últimas pruebas.sql
 │
 ├── docker-compose.yml
 ├── generar_red_metropolitana.py
@@ -111,160 +162,322 @@ Proyecto01-Fase01/
 └── README.md
 ```
 
-> **Nota:** Las carpetas `datos_red/`, `lake/bronze/` y `logs/` forman parte de la ejecución local del pipeline, pero algunos de sus archivos pueden no almacenarse directamente en el repositorio debido al volumen de datos y a los archivos generados durante la ejecución.
+**Nota:** algunos directorios contienen archivos generados durante la ejecución y pueden estar excluidos del repositorio mediante `.gitignore`.
 
 ---
 
-## Descripción de carpetas y archivos
+# 🟣 FASE 01 — Ingeniería y arquitectura de datos
 
-- **datos_red/**: contiene las fuentes de datos originales utilizadas para desarrollar el proyecto.
-- **lake/bronze/**: almacena los datos originales en formato Parquet, organizados según su método de ingesta.
-- **scripts/**: contiene los programas responsables de las ingestas batch, CDC y streaming, además de la carga hacia Staging.
-- **orchestration/**: contiene el flujo de Prefect que coordina las etapas del pipeline.
-- **dbt_red_metropolitana/**: contiene los modelos SQL y la configuración de dbt para construir las capas Staging, Silver, Quarantine, Gold y Features.
-- **dbt_red_metropolitana/models/features/**: contiene el modelo analítico utilizado para generar características de movilidad de los usuarios.
-- **docs/**: reúne la documentación técnica, métricas, modelo dimensional, consultas SQL y validaciones del proyecto.
-- **docs/evidencias/**: contiene los informes, presentaciones y archivos de visualización correspondientes a las Fases 01 y 02 del proyecto.
-- **logs/**: almacena los registros generados durante las ejecuciones del pipeline.
-- **generar_red_metropolitana.py**: genera o prepara los archivos de datos utilizados por el proyecto.
-- **docker-compose.yml**: configura los servicios de infraestructura, como PostgreSQL y Kafka.
-- **.env.example**: presenta las variables de entorno necesarias sin incluir credenciales reales.
-- **.gitignore**: define los archivos locales que no deben subirse al repositorio.
-- **requirements.txt**: contiene las dependencias de Python.
-- **README.md**: explica la instalación, ejecución, arquitectura y decisiones técnicas del proyecto.
+## 🎯 Objetivo
 
----
+Construir una plataforma de ingeniería de datos capaz de integrar información de distintos operadores de transporte mediante procesos de ingesta, almacenamiento, transformación y validación.
 
-## Fuentes de información
+## 1. Ingesta de datos
 
-El proyecto integra información de:
+Se implementaron tres mecanismos de ingesta.
 
-- Transmetro.
-- Transurbano.
-- Aerometro.
-- MetroRiel.
-- Padrón metropolitano de usuarios.
+### Ingesta Batch
 
-Los catálogos y archivos históricos se procesan mediante ingesta batch. Los eventos de Transmetro y Aerometro se procesan mediante Kafka. Las modificaciones del padrón de usuarios se procesan como eventos CDC.
+Procesamiento de archivos históricos y catálogos de transporte.
 
-Transurbano se implementó mediante una carga batch debido a que la fuente disponible corresponde a un archivo histórico y no a un productor de eventos en tiempo real.
+### Ingesta Streaming
 
----
+Procesamiento de eventos mediante Apache Kafka, principalmente para Transmetro y Aerometro.
 
-# Capas de datos
+### Ingesta CDC
 
-## Bronze
+Procesamiento de modificaciones del padrón de usuarios.
 
-### Justificación del almacenamiento Bronze
+Los datos originales se almacenan en formato Parquet dentro de la capa Bronze.
 
-Se eligió un lake local basado en carpetas y archivos Parquet porque permite conservar los datos con su estructura original, acumular nuevas ingestas y particionar físicamente la información por fecha.
+## 2. Capa Bronze
 
-Esta decisión también permite almacenar el JSON anidado de MetroRiel como contenido crudo sin obligarlo a adoptar inmediatamente un esquema relacional. La interpretación y normalización de esa estructura se realiza posteriormente en Staging y Silver.
+Conserva los datos originales antes de su transformación.
 
-El formato Parquet reduce el tamaño en disco mediante compresión, conserva los tipos de datos y permite reprocesar las fuentes sin modificar los archivos originales. El warehouse se utiliza posteriormente para Staging, Silver, Cuarentena y Gold, donde los datos ya poseen una estructura definida.
+Permite:
 
-Cada registro almacenado en Bronze conserva la marca de tiempo y la fecha de ingesta, junto con información del archivo de origen, para garantizar su trazabilidad.
+- Mantener los registros originales.
+- Conservar información de procedencia.
+- Facilitar el reprocesamiento.
+- Organizar archivos por fuente y tipo de ingesta.
 
-## Staging
+## 3. Capa Staging
 
-Carga temporalmente las fuentes Bronze en PostgreSQL para que puedan ser transformadas mediante dbt.
+Carga los datos provenientes de Bronze hacia PostgreSQL para facilitar las transformaciones posteriores.
 
-## Silver
+## 4. Capa Silver
 
-Contiene información limpia, validada, normalizada y conformada. Aquí se procesan fechas, zonas, usuarios, transacciones y reglas de calidad.
+Implementa procesos de:
 
-## Quarantine
+- Limpieza de información.
+- Normalización de campos.
+- Validación de fechas.
+- Estandarización de zonas.
+- Procesamiento de usuarios.
+- Aplicación de reglas de calidad.
 
-Almacena registros que no cumplen las reglas de calidad, incluyendo duplicados, valores nulos, fechas futuras y viajes incompletos.
+## 5. Capa Quarantine
 
-## Gold
+Almacena registros que no cumplen las reglas de calidad establecidas.
 
-Implementa el modelo dimensional utilizado para análisis y visualización.
+Esto permite separar información inválida sin eliminarla definitivamente.
+
+## 6. Capa Gold
+
+Se implementó un modelo dimensional para facilitar las consultas analíticas.
+
+### Dimensiones
+
+| Dimensión | Descripción |
+|---|---|
+| `dim_fecha` | Información temporal |
+| `dim_hora` | Distribución por hora |
+| `dim_modo` | Modos de transporte |
+| `dim_usuario` | Usuarios de la red |
+| `dim_zona` | Zonas geográficas |
 
 ### Tablas de hechos
 
-- `gold.fct_abordajes`
-- `gold.fct_viajes_metroriel`
+| Tabla | Descripción |
+|---|---|
+| `fct_abordajes` | Eventos de abordaje |
+| `fct_viajes_metroriel` | Viajes registrados en MetroRiel |
 
-### Dimensiones conformadas
+## 7. Orquestación
 
-- `gold.dim_fecha`
-- `gold.dim_hora`
-- `gold.dim_usuario`
-- `gold.dim_modo`
-- `gold.dim_zona`
+Se utiliza Prefect para coordinar las etapas del pipeline y facilitar su ejecución.
 
-## Features
+## 8. Resultados de Fase 01
 
-La Fase 02 incorpora una capa analítica de features destinada a generar variables derivadas del comportamiento de movilidad de los usuarios.
+| Indicador | Resultado |
+|---|---:|
+| Registros en Staging | 1,730,184 |
+| Registros en Silver | 1,919,887 |
+| Registros en Gold | 1,718,037 |
+| Registros en cuarentena | 18,431 |
+| Viajes válidos de MetroRiel | 295,511 |
 
-Modelo principal:
+### Idempotencia
 
-- `features.features_usuario_movilidad`
-
----
-
-# Modelo dimensional
-
-La matriz de procesos y dimensiones está documentada en:
-
-- [`docs/matriz_bus.md`](docs/matriz_bus.md)
-
-El diagrama dimensional está disponible en:
-
-- [`docs/diagrama_modelo.md`](docs/diagrama_modelo.md)
-
-El DDL de las tablas Gold está disponible en:
-
-- [`docs/ddl_gold.sql`](docs/ddl_gold.sql)
+Se verificó que dos ejecuciones consecutivas del pipeline produjeran los mismos totales por capa, sin duplicar registros.
 
 ---
 
-# Configuración del proyecto
+# 🔵 FASE 02 — Análisis y visualización de datos
 
-## 1. Crear el archivo de variables
+## 🎯 Objetivo
 
-Copiar el archivo de ejemplo:
+Ampliar la arquitectura de la Fase 01 mediante modelos analíticos que permitan estudiar la movilidad de los usuarios, identificar patrones multimodales y evaluar la demanda y cobertura territorial.
 
-```bash
-cp .env.example .env
+## 1. Features de movilidad
+
+Se implementó el modelo:
+
+`features.features_usuario_movilidad`
+
+Este modelo permite obtener características analíticas relacionadas con el comportamiento de los usuarios.
+
+Entre las variables consideradas se encuentran:
+
+- Cantidad de modos de transporte identificados.
+- Identificación de usuarios multimodales.
+- Actividad registrada.
+- Zonas de movilidad.
+- Patrones asociados con el uso del transporte.
+
+### Resultados
+
+Se procesaron **70,380 usuarios** en el modelo de features.
+
+| Modos identificados | Usuarios |
+|---|---:|
+| 1 modo | 33,551 |
+| 2 modos | 26,833 |
+| 3 modos | 9,996 |
+| **Total** | **70,380** |
+
+Se considera usuario multimodal a quien utiliza o está identificado en dos o más modos de transporte.
+
+**Usuarios multimodales identificados: 36,829.**
+
+---
+
+## 2. Modelo de demanda
+
+Se implementó:
+
+`gold.rpt_demanda_red`
+
+Este modelo permite analizar los abordajes registrados por modo de transporte.
+
+### Resultados de demanda
+
+| Modo de transporte | Abordajes |
+|---|---:|
+| Transurbano | 786,398 |
+| Transmetro | 362,106 |
+| MetroRiel | 295,511 |
+| Aerometro | 203,554 |
+
+Estos resultados facilitan la comparación de la demanda entre operadores.
+
+---
+
+## 3. Modelo de cobertura territorial
+
+Se implementó:
+
+`gold.rpt_cobertura_zona`
+
+Este modelo permite analizar la demanda por zona y su relación con la cobertura de transporte.
+
+El análisis permite:
+
+- Identificar zonas con mayor demanda.
+- Comparar zonas con y sin cobertura de MetroRiel.
+- Detectar oportunidades de mejora.
+- Apoyar decisiones de planificación territorial.
+
+### Caso MetroRiel
+
+Se analizaron zonas objetivo relacionadas con el servicio de MetroRiel.
+
+| Zona | Demanda total |
+|---|---:|
+| Zona 17 | 94,799 |
+| Zona 12 | 93,933 |
+| Zona 1 | 83,367 |
+| Zona 8 | 80,157 |
+| Zona 6 | 71,840 |
+
+---
+
+## 4. Validaciones de calidad
+
+Se incorporaron pruebas adicionales de dbt para verificar:
+
+- Consistencia de las features.
+- Ausencia de dependencias incorrectas entre capas.
+- Prevención de fuga de información.
+- Conciliación entre Silver y Gold.
+- Consistencia de los registros en cuarentena.
+- Detección de zonas sin servicio.
+
+### Pruebas incorporadas
+
+```text
+tests/
+├── cobertura_sin_servicio_detectada.sql
+├── conciliacion_silver_gold.sql
+├── cuarentena_cuadra_con_staging.sql
+├── features_consistencia.sql
+├── features_no_lee_gold.sql
+├── features_sin_fuga_de_informacion.sql
+└── gold_no_lee_bronze_ni_staging.sql
 ```
 
-Editar `.env` y colocar las credenciales locales de PostgreSQL.
+### Validaciones ejecutadas
 
-El archivo `.env` contiene información privada y no debe subirse al repositorio.
+Los cuatro modelos actualizados se construyeron correctamente:
 
-## 2. Crear el entorno virtual
+```text
+dim_usuario_conformado
+features_usuario_movilidad
+rpt_cobertura_zona
+rpt_demanda_red
+```
+
+También se ejecutaron pruebas seleccionadas de Fase 02.
+
+```text
+PASS=32
+WARN=0
+ERROR=0
+```
+
+Las 32 pruebas seleccionadas finalizaron correctamente.
+
+---
+
+## 5. Visualización en Tableau
+
+Se desarrolló un libro de Tableau para presentar los resultados de la Red Metropolitana.
+
+### Dashboard: Red Metropolitana
+
+Incluye visualizaciones de:
+
+- Abordajes por modo.
+- Demanda por zona.
+- Demanda por hora.
+- Usuarios multimodales.
+- Viajes por estación de MetroRiel.
+- Cobertura por zona.
+
+### Dashboard: Cobertura y Caso MetroRiel
+
+Permite analizar:
+
+- Cobertura territorial.
+- Demanda por zona.
+- Relación entre demanda y disponibilidad de transporte.
+- Zonas de interés para la planificación de MetroRiel.
+
+### Archivo principal
+
+`docs/evidencias/Proyecto 01 - Fase 02.twb`
+
+---
+
+## 6. Documentación técnica
+
+Se incorporaron documentos específicos para respaldar los resultados de Fase 02.
+
+| Documento | Contenido |
+|---|---|
+| `diccionario_datos.md` | Definición de campos y estructuras |
+| `features.md` | Características analíticas |
+| `gobernanza.md` | Reglas y responsabilidades de datos |
+| `metricas_fase2.md` | Indicadores de Fase 02 |
+| `recomendacion.md` | Recomendaciones basadas en resultados |
+| `seguridad.md` | Controles de seguridad |
+| `tablero.md` | Documentación de Tableau |
+
+---
+
+# ⚙️ Configuración y ejecución
+
+## 1. Crear el entorno virtual
 
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
 ```
 
-## 3. Instalar dependencias
+## 2. Instalar dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 4. Levantar PostgreSQL y Kafka
+## 3. Configurar variables de entorno
+
+```bash
+cp .env.example .env
+```
+
+Editar `.env` con las credenciales correspondientes.
+
+**Importante:** no subir `.env` a GitHub.
+
+## 4. Levantar los servicios
 
 ```bash
 docker compose up -d
 docker compose ps
 ```
 
-PostgreSQL debe aparecer con estado `healthy` y Kafka con estado `Up`.
-
-## 5. Cargar las variables de entorno
-
-```bash
-set -a
-source .env
-set +a
-```
-
-## 6. Validar la conexión de dbt
+## 5. Verificar la conexión de dbt
 
 ```bash
 dbt debug \
@@ -272,19 +485,7 @@ dbt debug \
   --profiles-dir dbt_red_metropolitana
 ```
 
-## 7. Ejecutar el pipeline completo
-
-```bash
-python orchestration/flow_red_metropolitana.py
-```
-
-El flujo ejecuta las ingestas, carga Staging, construye los modelos dbt, ejecuta las pruebas, registra las métricas y limpia las tablas temporales.
-
----
-
-# Ejecución manual de dbt
-
-Cuando Staging contenga datos, se pueden ejecutar las transformaciones manualmente:
+## 6. Ejecutar las transformaciones
 
 ```bash
 dbt build \
@@ -292,182 +493,80 @@ dbt build \
   --profiles-dir dbt_red_metropolitana
 ```
 
----
+**Nota:** este comando ejecuta transformaciones y pruebas sobre la base de datos configurada. Debe utilizarse únicamente cuando el entorno esté preparado.
 
-# Pruebas de calidad
+## 7. Ejecutar las pruebas de Fase 02
 
-El proyecto utiliza pruebas dbt para validar:
-
-- Campos obligatorios.
-- Llaves únicas.
-- Integridad referencial.
-- Relaciones entre hechos y dimensiones.
-- Catálogos mínimos de usuarios.
-- Consistencia del modelo dimensional.
-- Integridad de las features de movilidad.
-
----
-
-# Idempotencia
-
-El pipeline fue ejecutado dos veces consecutivas y produjo los mismos resultados:
-
-| Capa | Ejecución 1 | Ejecución 2 |
-|---|---:|---:|
-| Staging | 1,730,184 | 1,730,184 |
-| Silver | 1,919,887 | 1,919,887 |
-| Gold | 1,718,037 | 1,718,037 |
-| Cuarentena | 18,431 | 18,431 |
-
-Las dos ejecuciones finalizaron con estado `EXITOSA`, demostrando que el pipeline no genera duplicados al reprocesar las mismas fuentes.
-
-La evidencia completa está disponible en:
-
-- [`docs/metricas_fase1.md`](docs/metricas_fase1.md)
-
----
-
-# Seguridad
-
-- Las credenciales se administran mediante variables de entorno.
-- `.env` está excluido del repositorio.
-- `.env.example` únicamente contiene valores de referencia.
-- Los identificadores originales de los usuarios no se exponen en las tablas Gold.
-- Las dimensiones utilizan llaves sustitutas.
-
----
-
-# Fase 02 — Visualización y Análisis de Movilidad
-
-La **Fase 02** amplía el modelo desarrollado durante la primera fase para transformar los datos consolidados en información útil para el análisis de movilidad de la Red Metropolitana.
-
-## Features de movilidad
-
-Se incorporó una nueva capa dentro del proyecto dbt:
-
-```text
-dbt_red_metropolitana/models/features/
-├── features.yml
-└── features_usuario_movilidad.sql
+```bash
+dbt test \
+  --project-dir dbt_red_metropolitana \
+  --profiles-dir dbt_red_metropolitana \
+  --select features_usuario_movilidad rpt_cobertura_zona rpt_demanda_red
 ```
 
-El modelo `features_usuario_movilidad` permite generar características analíticas por usuario, incluyendo:
+## 8. Ejecutar la orquestación
 
-- Cantidad de modos identificados.
-- Identificación de usuarios multimodales.
-- Actividad dentro de la red.
-- Variables derivadas del comportamiento de movilidad.
-
-Se considera **usuario multimodal** a aquel identificado en **dos o más modos de transporte**.
-
----
-
-## Usuarios multimodales
-
-El análisis realizado permitió identificar:
-
-> **36,829 usuarios multimodales**
-
-Distribución según la cantidad de modos identificados:
-
-| Cantidad de modos | Usuarios |
-|:---:|---:|
-| 1 | 33,551 |
-| 2 | 26,833 |
-| 3 | 9,996 |
-
----
-
-## Análisis del caso MetroRiel
-
-Para el análisis de demanda se evaluaron las zonas objetivo:
-
-`Zona 12` · `Zona 8` · `Zona 1` · `Zona 6` · `Zona 17`
-
-| Zona | Demanda total |
-|:---|---:|
-| Zona 17 | 94,799 |
-| Zona 12 | 93,933 |
-| Zona 1 | 83,367 |
-| Zona 8 | 80,157 |
-| Zona 6 | 71,840 |
-
-Estos resultados permiten comparar la demanda existente en las zonas objetivo y apoyar el análisis de cobertura y planificación de MetroRiel.
-
----
-
-## Validación con dbt
-
-El modelo de features fue sometido a pruebas de calidad para verificar:
-
-- Valores no nulos.
-- Unicidad de `usuario_sk`.
-- Integridad de la cantidad de modos.
-- Clasificación de usuarios multimodales.
-
-Resultado final:
-
-```text
-PASS=4
-WARN=0
-ERROR=0
-SKIP=0
-TOTAL=4
+```bash
+python orchestration/flow_red_metropolitana.py
 ```
 
-**Todas las pruebas finalizaron correctamente.**
+La ejecución completa del flujo puede realizar ingestas y modificar datos en PostgreSQL.
 
 ---
 
-# Visualización en Tableau
+# 🔐 Seguridad
 
-Se desarrolló el dashboard **Red Metropolitana** en Tableau Desktop.
+El proyecto incorpora las siguientes prácticas:
 
-Incluye las siguientes visualizaciones:
-
-- **Abordajes por Modo**
-- **Demanda por Zona**
-- **Demanda por Hora**
-- **Usuarios Multimodales**
-- **Viajes por estación de MetroRiel**
-- **Cobertura por Zona**
-
-El dashboard incorpora filtros interactivos por modo de transporte y zona para facilitar la exploración y comparación de los resultados.
+- Administración de credenciales mediante variables de entorno.
+- Exclusión de `.env` del repositorio.
+- Uso de llaves sustitutas en dimensiones.
+- Separación de capas y responsabilidades.
+- Validaciones automatizadas de calidad.
+- Documentación de controles y reglas de gobernanza.
 
 ---
 
-# Archivos de la Fase 02
+# 📊 Resultados generales
 
-Los principales archivos incorporados son:
+| Componente | Fase 01 | Fase 02 |
+|---|---|---|
+| Ingesta Batch | Implementado | Reutilizado |
+| Streaming con Kafka | Implementado | Reutilizado |
+| CDC | Implementado | Reutilizado |
+| Bronze | Implementado | Reutilizado |
+| Staging | Implementado | Reutilizado |
+| Silver | Implementado | Ampliado |
+| Gold | Modelo dimensional | Reportes analíticos |
+| Features | — | Implementado |
+| Pruebas dbt | Implementadas | Ampliadas |
+| Prefect | Implementado | Flujo actualizado |
+| Tableau | — | Dashboards desarrollados |
+| Documentación | Fase 01 | Fase 02 |
+
+---
+
+# 📚 Evidencias
+
+Los principales entregables se encuentran en:
 
 ```text
-dbt_red_metropolitana/models/features/
-├── features.yml
-└── features_usuario_movilidad.sql
-
-docs/
-├── Fase 02.sql
-├── validaciones.sql
-└── evidencias/
-    ├── Proyecto 01 - Fase 02.pdf
-    ├── Proyecto 01 - Fase 02.pptx
-    └── Proyecto 01 - Fase 02.twb
+docs/evidencias/
+├── Proyecto 01 - Fase 01.pdf
+├── Proyecto 01 - Fase 02.pdf
+└── Proyecto 01 - Fase 02.twb
 ```
 
----
-
-# Resultado de la Fase 02
-
-La Fase 02 permitió extender la arquitectura construida previamente hacia una capa analítica orientada al estudio de la movilidad.
-
-La integración entre **PostgreSQL, dbt y Tableau** permite pasar desde los datos consolidados hasta indicadores y visualizaciones que facilitan el análisis de demanda, multimodalidad y cobertura territorial.
+La documentación técnica adicional se encuentra en la carpeta `docs/`.
 
 ---
 
-# Autoras
+# 👩‍💻 Integrantes
 
-Proyecto académico desarrollado para las **Fases 01 y 02 del Proyecto Red Metropolitana** por:
+Proyecto académico desarrollado por:
 
-💜 Rochelle Esquivel  
-🩷 Susana García  
-💙 Harriett Guzmán
+- 💜 Rochelle Esquivel
+- 🩷 Susana García
+- 💙 Harriett Guzmán
+
+**Universidad Rafael Landívar — Ciencia de Datos**

@@ -1,0 +1,36 @@
+version: 2
+
+# Consumidores finales. Aparecen en el grafo de linaje de dbt (dbt docs)
+# para que cada métrica del tablero se pueda rastrear hasta el archivo crudo.
+
+exposures:
+  - name: tablero_red_metropolitana
+    label: "Tablero Red Metropolitana (Tableau)"
+    type: dashboard
+    maturity: high
+    description: >
+      Dashboard 'Red Metropolitana' (docs/evidencias/Proyecto 01 - Fase 02.twb).
+      Demanda por modo, zona y hora; cobertura; usuarios multimodales; caso MetroRiel.
+      Se conecta solo a la capa Gold.
+    depends_on:
+      - ref('fct_abordajes')
+      - ref('fct_viajes_metroriel')
+      - ref('dim_fecha')
+      - ref('dim_hora')
+      - ref('dim_modo')
+      - ref('dim_usuario')
+      - ref('dim_zona')
+      - ref('rpt_cobertura_zona')
+      - ref('rpt_demanda_red')
+    owner:
+      name: "Equipo de Datos de la Agencia Metropolitana"
+
+  - name: modelo_ml_movilidad
+    label: "Features para ciencia de datos"
+    type: ml
+    maturity: medium
+    description: "Tabla de features por usuario lista para entrenar un modelo (no se entrena aquí)."
+    depends_on:
+      - ref('features_usuario_movilidad')
+    owner:
+      name: "Equipo de Ciencia de Datos"

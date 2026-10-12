@@ -3,5 +3,7 @@ pyarrow
 kafka-python
 psycopg2-binary
 python-dotenv
-prefect
-dbt-postgres
+prefect>=3.8.5,<4
+dbt-core>=1.12.4,<1.13
+dbt-postgres>=1.11,<1.12
+PyYAML

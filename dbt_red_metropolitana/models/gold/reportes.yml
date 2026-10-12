@@ -1,0 +1,112 @@
+version: 2
+
+models:
+  - name: rpt_cobertura_zona
+    description: >
+      Vista para el tablero (cobertura y caso MetroRiel). Una fila por zona del
+      área metropolitana, incluyendo zonas donde vive gente según el padrón pero
+      ningún modo opera.
+    meta:
+      dueno: "Dirección de Planificación Territorial"
+    columns:
+      - name: zona_sk
+        description: "md5 del nombre de zona (misma fórmula que dim_zona)."
+        meta: {fuente: "dim_zona + padrón", transformacion: "md5(zona_nombre)"}
+        data_tests: [not_null, unique]
+      - name: zona_nombre
+        description: "Nombre normalizado de la zona."
+        meta: {fuente: "gold.dim_zona y silver.dim_usuario_actual.zona_residencia", transformacion: "UNION + macro normalizar_zona"}
+        data_tests: [not_null, unique]
+      - name: residentes_padron
+        description: "Tarjetas del padrón vigente con esa zona de residencia."
+        meta: {fuente: "cdc_padron_usuarios.csv -> silver.dim_usuario_actual", transformacion: "count(*) por zona"}
+      - name: residentes_activos
+        description: "Tarjetas activas del padrón con esa zona de residencia."
+        meta: {fuente: "silver.dim_usuario_actual", transformacion: "count(*) filter (activo)"}
+      - name: abordajes_transmetro
+        description: "Abordajes válidos de Transmetro en la zona."
+        meta: {fuente: "gold.fct_abordajes", transformacion: "count por zona y modo"}
+      - name: abordajes_transurbano
+        description: "Abordajes válidos (aprobados) de Transurbano en la zona."
+        meta: {fuente: "gold.fct_abordajes", transformacion: "count por zona y modo"}
+      - name: abordajes_aerometro
+        description: "Abordajes de Aerómetro en la zona."
+        meta: {fuente: "gold.fct_abordajes", transformacion: "count por zona y modo"}
+      - name: viajes_metroriel_origen
+        description: "Viajes completos de MetroRiel que inician en la zona."
+        meta: {fuente: "gold.fct_viajes_metroriel", transformacion: "count por zona_entrada"}
+      - name: viajes_metroriel_destino
+        description: "Viajes completos de MetroRiel que terminan en la zona."
+        meta: {fuente: "gold.fct_viajes_metroriel", transformacion: "count por zona_salida"}
+      - name: modos_con_servicio
+        description: "Cantidad de modos (0-4) con actividad en la zona."
+        meta: {fuente: "Columnas anteriores", transformacion: "Suma de banderas > 0"}
+        data_tests: [not_null]
+      - name: sin_servicio
+        description: "Verdadero si ningún modo registró actividad en la zona."
+        meta: {fuente: "Columnas anteriores", transformacion: "total = 0"}
+        data_tests: [not_null]
+      - name: en_trazado_metroriel
+        description: "Verdadero para las zonas del trazado propuesto: 12, 8, 1, 6 y 17."
+        meta: {fuente: "Enunciado del proyecto", transformacion: "Macro zonas_trazado_metroriel"}
+      - name: demanda_sin_metroriel
+        description: "Abordajes de Transmetro + Transurbano + Aerómetro: demanda que existe independientemente de MetroRiel."
+        meta: {fuente: "gold.fct_abordajes", transformacion: "Suma"}
+      - name: demanda_total
+        description: "demanda_sin_metroriel + viajes de MetroRiel que inician en la zona."
+        meta: {fuente: "fct_abordajes + fct_viajes_metroriel", transformacion: "Suma"}
+      - name: ranking_demanda_sin_metroriel
+        description: "Posición de la zona por demanda_sin_metroriel (1 = mayor)."
+        meta: {fuente: "Columna demanda_sin_metroriel", transformacion: "rank() descendente"}
+
+  - name: rpt_demanda_red
+    description: >
+      Vista para el tablero: demanda de los CUATRO modos por zona, fecha y hora.
+      Un viaje de MetroRiel cuenta como un abordaje en su zona y hora de entrada.
+    meta:
+      dueno: "Gerencia de Operaciones"
+    columns:
+      - name: modo_sk
+        description: "Llave del modo."
+        meta: {fuente: "fct_abordajes / fct_viajes_metroriel", transformacion: "UNION ALL"}
+        data_tests: [not_null]
+      - name: modo_nombre
+        description: "Nombre del modo (los cuatro)."
+        meta: { fuente: "fct_abordajes / fct_viajes_metroriel", transformacion: "UNION ALL" }
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - TRANSMETRO
+                  - TRANSURBANO
+                  - METRORIEL
+                  - AEROMETRO
+
+      - name: zona_sk
+        description: "Zona del abordaje o de la entrada a MetroRiel."
+        meta: {fuente: "fct_abordajes.zona_sk / fct_viajes_metroriel.zona_entrada_sk", transformacion: "UNION ALL"}
+      - name: zona_nombre
+        description: "Nombre normalizado de la zona."
+        meta: {fuente: "Igual que zona_sk", transformacion: "UNION ALL"}
+      - name: fecha_sk
+        description: "Fecha local (YYYYMMDD)."
+        meta: {fuente: "Hechos Gold", transformacion: "UNION ALL"}
+      - name: hora_sk
+        description: "Hora local (0-23); para MetroRiel, hora de entrada."
+        meta: {fuente: "Hechos Gold", transformacion: "UNION ALL"}
+      - name: franja_horaria
+        description: "Franja de dim_hora."
+        meta: {fuente: "gold.dim_hora", transformacion: "Join por hora_sk"}
+      - name: es_hora_pico
+        description: "Bandera oficial de hora pico."
+        meta: {fuente: "gold.dim_hora", transformacion: "Join por hora_sk"}
+      - name: es_dia_habil
+        description: "Lunes a viernes."
+        meta: {fuente: "gold.dim_fecha", transformacion: "Join por fecha_sk"}
+      - name: abordajes
+        description: "Abordajes (o entradas a MetroRiel) en el grupo. Aditiva."
+        meta: {fuente: "cantidad_abordajes / cantidad_viajes", transformacion: "sum"}
+      - name: ingreso_gtq
+        description: "Tarifa total cobrada en quetzales. Aditiva."
+        meta: {fuente: "monto_gtq", transformacion: "sum"}

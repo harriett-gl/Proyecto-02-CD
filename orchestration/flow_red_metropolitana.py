@@ -3,6 +3,7 @@ import sys
 import time
 import uuid
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 import psycopg2
@@ -19,6 +20,17 @@ SCRIPT_CDC = RAIZ_PROYECTO / "scripts" / "ingesta_cdc.py"
 SCRIPT_PRODUCER = RAIZ_PROYECTO / "scripts" / "stream_producer.py"
 SCRIPT_CONSUMER = RAIZ_PROYECTO / "scripts" / "stream_consumer.py"
 load_dotenv(RAIZ_PROYECTO / ".env")
+
+
+def ejecutable_dbt():
+    # Usa el dbt del mismo entorno virtual que ejecuta el flujo
+    # (bin/dbt en Linux/macOS, Scripts/dbt.exe en Windows); si no existe,
+    # recurre al que esté en el PATH.
+    for nombre in ("dbt", "dbt.exe"):
+        candidato = Path(sys.executable).parent / nombre
+        if candidato.exists():
+            return str(candidato)
+    return "dbt"
 
 def conexion_postgresql():
     return psycopg2.connect(
@@ -61,7 +73,7 @@ def contar_esquema(cursor, esquema):
 
     return total
 
-@task
+@task(retries=2, retry_delay_seconds=10)
 def ejecutar_ingestas_bronze():
     logger = get_run_logger()
 
@@ -110,7 +122,7 @@ def ejecutar_ingestas_bronze():
                 f"Falló {nombre}:\n{resultado.stderr}"
             )
 
-@task
+@task(retries=2, retry_delay_seconds=10)
 def cargar_staging():
     logger = get_run_logger()
     logger.info("Cargando archivos en Staging.")
@@ -138,7 +150,7 @@ def ejecutar_dbt():
 
     resultado = subprocess.run(
         [
-            "dbt",
+            ejecutable_dbt(),
             "build",
             "--profiles-dir",
             str(CARPETA_DBT)
@@ -158,11 +170,12 @@ def ejecutar_dbt():
 
     logger.info("dbt build finalizó correctamente.")
 
-@task
+@task(retries=2, retry_delay_seconds=5)
 def registrar_auditoria(
     corrida_id,
     fecha_inicio,
-    duracion_segundos
+    duracion_segundos,
+    estado="EXITOSA"
 ):
     logger = get_run_logger()
 
@@ -213,7 +226,7 @@ def registrar_auditoria(
                     corrida_id,
                     fecha_inicio,
                     duracion_segundos,
-                    "EXITOSA",
+                    estado,
                     staging,
                     silver,
                     gold,
@@ -221,7 +234,7 @@ def registrar_auditoria(
                 )
             )
 
-    logger.info("Auditoría registrada correctamente.")
+    logger.info(f"Auditoría registrada correctamente ({estado}).")
 
 
 @task
@@ -267,24 +280,35 @@ def pipeline_red_metropolitana():
     logger = get_run_logger()
     inicio_total = time.time()
 
-    fecha_inicio = time.strftime(
-        "%Y-%m-%d %H:%M:%S+00"
-    )
+    # Hora real en UTC (antes se guardaba la hora local marcada como +00,
+    # lo que desplazaba fecha_inicio 6 horas en audit.ejecuciones_pipeline).
+    fecha_inicio = datetime.now(timezone.utc)
     corrida_id = str(uuid.uuid4())
 
     logger.info(f"Iniciando corrida {corrida_id}")
 
-    inicio_etapa = time.time()
-    ejecutar_ingestas_bronze()
-    duracion_bronze = round(time.time() - inicio_etapa, 2)
+    try:
+        inicio_etapa = time.time()
+        ejecutar_ingestas_bronze()
+        duracion_bronze = round(time.time() - inicio_etapa, 2)
 
-    inicio_etapa = time.time()
-    cargar_staging()
-    duracion_staging = round(time.time() - inicio_etapa, 2)
+        inicio_etapa = time.time()
+        cargar_staging()
+        duracion_staging = round(time.time() - inicio_etapa, 2)
 
-    inicio_etapa = time.time()
-    ejecutar_dbt()
-    duracion_dbt = round(time.time() - inicio_etapa, 2)
+        inicio_etapa = time.time()
+        ejecutar_dbt()
+        duracion_dbt = round(time.time() - inicio_etapa, 2)
+
+    except Exception:
+        # La bitácora también registra las corridas fallidas.
+        registrar_auditoria(
+            corrida_id,
+            fecha_inicio,
+            round(time.time() - inicio_total, 2),
+            "FALLIDA"
+        )
+        raise
 
     duracion_procesamiento = round(
         time.time() - inicio_total,

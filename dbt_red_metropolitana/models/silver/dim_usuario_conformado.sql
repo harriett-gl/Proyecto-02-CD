@@ -76,7 +76,11 @@ usuarios_con_padron as (
 )
 
 select
+   -- Seudonimización: md5 con una "sal" secreta (variable de entorno
+   -- USUARIO_SALT, nunca en el repositorio). Sin la sal, el md5 de un
+   -- número de 10 dígitos se podría revertir probando todos los valores.
    md5(
+    '{{ env_var("USUARIO_SALT", "") }}' ||
     case
         when modo = 'TRANSMETRO'
              and usuario_origen_id ~ '^TC-[0-9]{8}$'

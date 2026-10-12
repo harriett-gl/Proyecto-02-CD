@@ -2,21 +2,88 @@ version: 2
 
 models:
   - name: features_usuario_movilidad
-    description: "Características de movilidad consolidadas por usuario."
-
+    description: >
+      Tabla de features para ciencia de datos (sección 2.3). Una fila por usuario
+      con al menos un viaje válido hasta la fecha de corte (variable dbt
+      `fecha_corte`, por defecto 2026-07-15). Se calcula desde Silver (detalle
+      atómico), nunca desde Gold. Permite entrenar, por ejemplo, un modelo que
+      prediga qué usuarios dejarán de viajar en los próximos 30 días.
+    meta:
+      dueno: "Equipo de Ciencia de Datos"
+      fecha_corte: "2026-07-15"
     columns:
       - name: usuario_sk
-        description: "Identificador único del usuario."
-        tests:
+        description: "Seudónimo del usuario (misma llave que gold.dim_usuario)."
+        data_tests: [not_null, unique]
+      - name: fecha_corte
+        description: "Fecha de corte del cálculo. Ningún evento posterior se usa."
+        data_tests: [not_null]
+      - name: perfil_padron
+        description: "Perfil tarifario según el padrón (solo usuarios con tarjeta Transmetro)."
+      - name: viajes_ultimos_7d
+        description: "Viajes válidos en los 7 días que terminan en la fecha de corte."
+        data_tests: [not_null]
+      - name: viajes_ultimos_30d
+        description: "Viajes válidos en los últimos 30 días."
+        data_tests: [not_null]
+      - name: viajes_ultimos_90d
+        description: "Viajes válidos en los últimos 90 días (el periodo de datos es de 45 días)."
+        data_tests: [not_null]
+      - name: viajes_total
+        description: "Viajes válidos de todo el historial hasta la fecha de corte."
+        data_tests: [not_null]
+      - name: dias_activos
+        description: "Días distintos con al menos un viaje."
+        data_tests: [not_null]
+      - name: dias_desde_ultimo_viaje
+        description: "Días entre el último viaje y la fecha de corte (recencia)."
+        data_tests: [not_null]
+      - name: dias_desde_primer_viaje
+        description: "Días entre el primer viaje observado y la fecha de corte (antigüedad)."
+        data_tests: [not_null]
+      - name: modo_mas_usado
+        description: "Modo con más viajes; empate se resuelve alfabéticamente."
+        data_tests:
           - not_null
-          - unique
+          - accepted_values:
+              arguments:
+                values:
+                  - TRANSMETRO
+                  - TRANSURBANO
+                  - METRORIEL
+                  - AEROMETRO
 
       - name: cantidad_modos
-        description: "Cantidad de modos de transporte identificados para el usuario."
-        tests:
-          - not_null
-
+        description: "Modos distintos con viajes observados (1-4)."
+        data_tests: [not_null]
       - name: es_multimodal
-        description: "Indica si el usuario utiliza dos o más modos de transporte."
-        tests:
-          - not_null
+        description: "Verdadero si viajó en 2 o más modos."
+        data_tests: [not_null]
+      - name: viajes_transmetro
+        description: "Viajes válidos en Transmetro."
+      - name: viajes_transurbano
+        description: "Viajes válidos (aprobados) en Transurbano."
+      - name: viajes_metroriel
+        description: "Viajes completos en MetroRiel."
+      - name: viajes_aerometro
+        description: "Abordajes en Aerómetro."
+      - name: proporcion_hora_pico
+        description: "Fracción de viajes en hora pico oficial (06-08 y 16-18 h), entre 0 y 1."
+        data_tests: [not_null]
+      - name: proporcion_fin_semana
+        description: "Fracción de viajes en sábado o domingo, entre 0 y 1."
+        data_tests: [not_null]
+      - name: zona_origen_mas_frecuente
+        description: "Zona donde más aborda (para MetroRiel, zona de entrada)."
+        data_tests: [not_null]
+      - name: zonas_distintas
+        description: "Cantidad de zonas distintas donde abordó."
+      - name: gasto_total_gtq
+        description: "Gasto acumulado en quetzales."
+        data_tests: [not_null]
+      - name: gasto_promedio_viaje_gtq
+        description: "Gasto promedio por viaje en quetzales."
+        data_tests: [not_null]
+      - name: transacciones_rechazadas
+        description: "Transacciones rechazadas en Transurbano (saldo insuficiente o tarjeta inválida)."
+        data_tests: [not_null]
