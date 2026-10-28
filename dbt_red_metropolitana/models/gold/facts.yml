@@ -1,94 +1,275 @@
+
 version: 2
+
 models:
-- name: fct_abordajes
-  description: Un abordaje válido de Transmetro, Transurbano o Aerometro por fila.
-  columns:
-  - name: abordaje_sk
-    data_tests:
-    - not_null
-    - unique
-    description: Clave única MD5 del modo y evento original.
+  - name: fct_abordajes
+    description: >
+      Tabla de hechos que registra un abordaje válido de Transmetro,
+      Transurbano o Aerómetro por fila. Permite analizar la demanda
+      de transporte mediante dimensiones temporales, geográficas
+      y de usuarios.
     meta:
-      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
-      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
-  - name: modo_sk
-    data_tests:
-    - not_null
-    description: Clave del modo de transporte.
-    meta:
-      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
-      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
-  - name: usuario_sk
-    data_tests:
-    - not_null
-    description: Clave seudonimizada del usuario.
-    meta:
-      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
-      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
-  - name: fecha_sk
-    data_tests:
-    - not_null
-    description: Fecha del abordaje en formato YYYYMMDD.
-    meta:
-      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
-      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
-  - name: hora_sk
-    data_tests:
-    - not_null
-    description: Hora local del abordaje.
-    meta:
-      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
-      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
-  - name: cantidad_abordajes
-    data_tests:
-    - not_null
-    description: Indicador unitario de abordaje; valor 1.
-    meta:
-      fuente: 'Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings'
-      transformacion: Unión de abordajes, normalización de zonas y enlace con dimensiones.
-- name: fct_viajes_metroriel
-  description: Un viaje completo y válido de MetroRiel por fila.
-  columns:
-  - name: viaje_sk
-    data_tests:
-    - not_null
-    - unique
-    description: Clave MD5 generada a partir del identificador del viaje.
+      fuente: silver.transmetro_validaciones, silver.transurbano_transacciones y silver.aerometro_boardings
+      transformacion: Integración de abordajes válidos, normalización de atributos y asociación con dimensiones.
+      granularidad: Un abordaje válido por registro.
+      tipo_medida: Aditiva
+    columns:
+      - name: abordaje_sk
+        description: Identificador único del abordaje generado mediante MD5.
+        meta:
+          fuente: Identificadores de eventos de los tres operadores en Silver
+          transformacion: Generación de una clave única a partir del modo y evento original.
+        data_tests:
+          - not_null
+          - unique
+      - name: evento_origen_id
+        description: Identificador del evento en el sistema de origen.
+        meta:
+          fuente: Eventos de los operadores en Silver
+          transformacion: Conservación del identificador original del evento.
+
+      - name: modo_nombre
+        description: Nombre del modo de transporte asociado al abordaje.
+        meta:
+          fuente: Catálogo de modos de transporte
+          transformacion: Asociación del evento con su modo correspondiente.
+
+      - name: zona_sk
+        description: Identificador de la zona asociada al abordaje.
+        meta:
+          fuente: Datos geográficos de los eventos en Silver
+          transformacion: Asociación del evento con la zona normalizada.
+
+      - name: zona_nombre
+        description: Nombre de la zona asociada al abordaje.
+        meta:
+          fuente: Datos geográficos de los eventos en Silver
+          transformacion: Obtención del nombre normalizado de la zona.
+
+      - name: ubicacion_codigo
+        description: Código de ubicación registrado para el evento.
+        meta:
+          fuente: Eventos de los operadores en Silver
+          transformacion: Conservación del código de ubicación del evento.
+
+      - name: servicio
+        description: Servicio de transporte asociado al abordaje.
+        meta:
+          fuente: Eventos de los operadores en Silver
+          transformacion: Estandarización del servicio asociado al evento.
+
+      - name: fecha_hora_local
+        description: Fecha y hora local del abordaje.
+        meta:
+          fuente: Fecha y hora del evento en Silver
+          transformacion: Obtención de la marca temporal local del evento.
+
+      - name: monto_gtq
+        description: Monto monetario del abordaje expresado en quetzales.
+        meta:
+          fuente: Datos monetarios de los operadores en Silver
+          transformacion: Normalización del monto a quetzales.
+
+      - name: operacion_exitosa
+        description: Indicador booleano del resultado de la operación.
+        meta:
+          fuente: Eventos de los operadores en Silver
+          transformacion: Identificación del estado exitoso de la operación.
+
+      - name: modo_sk
+        description: Clave que identifica el modo de transporte utilizado.
+        meta:
+          fuente: gold.dim_modo
+          transformacion: Asociación del abordaje con el catálogo de modos.
+        data_tests:
+          - not_null
+
+      - name: usuario_sk
+        description: Identificador seudonimizado del usuario que realizó el abordaje.
+        meta:
+          fuente: silver.dim_usuario_conformado
+          transformacion: Asociación del abordaje con la clave seudonimizada del usuario.
+        data_tests:
+          - not_null
+
+      - name: fecha_sk
+        description: Identificador de la fecha del abordaje en formato YYYYMMDD.
+        meta:
+          fuente: Fechas de los eventos registrados en Silver
+          transformacion: Conversión de la fecha del evento a una clave de calendario.
+        data_tests:
+          - not_null
+
+      - name: hora_sk
+        description: Identificador de la hora en que ocurrió el abordaje.
+        meta:
+          fuente: Horas de los eventos registrados en Silver
+          transformacion: Extracción de la hora del evento y asociación con la dimensión horaria.
+        data_tests:
+          - not_null
+
+      - name: cantidad_abordajes
+        description: >
+          Medida aditiva que representa un abordaje válido.
+          Cada registro tiene un valor unitario de 1.
+        meta:
+          fuente: Eventos válidos de Transmetro, Transurbano y Aerómetro
+          transformacion: Asignación del valor 1 a cada abordaje válido.
+          clasificacion: Aditiva
+        data_tests:
+          - not_null
+
+  - name: fct_viajes_metroriel
+    description: >
+      Tabla de hechos que registra un viaje completo y válido de
+      MetroRiel por fila. Permite analizar la cantidad de viajes
+      y su duración.
     meta:
       fuente: silver.metroriel_viajes
-      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
-  - name: modo_sk
-    data_tests:
-    - not_null
-    description: Clave correspondiente a MetroRiel.
-    meta:
-      fuente: silver.metroriel_viajes
-      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
-  - name: usuario_sk
-    data_tests:
-    - not_null
-    description: Clave seudonimizada del usuario.
-    meta:
-      fuente: silver.metroriel_viajes
-      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
-  - name: fecha_sk
-    data_tests:
-    - not_null
-    description: Fecha de entrada en formato YYYYMMDD.
-    meta:
-      fuente: silver.metroriel_viajes
-      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
-  - name: duracion_segundos
-    data_tests:
-    - not_null
-    description: Duración del viaje expresada en segundos.
-    meta:
-      fuente: silver.metroriel_viajes
-      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
-  - name: cantidad_viajes
-    data_tests:
-    - not_null
-    description: Indicador unitario de viaje; valor 1.
-    meta:
-      fuente: silver.metroriel_viajes
-      transformacion: Enlace de viajes válidos con dimensiones y cálculo de claves.
+      transformacion: Selección de viajes válidos, asociación con dimensiones y cálculo de medidas.
+      granularidad: Un viaje completo y válido por registro.
+    columns:
+      - name: viaje_sk
+        description: Identificador único del viaje generado mediante MD5.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Generación de una clave a partir del identificador del viaje.
+        data_tests:
+          - not_null
+          - unique
+      - name: viaje_id
+        description: Identificador original del viaje de MetroRiel.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Conservación del identificador del viaje.
+
+      - name: modo_nombre
+        description: Nombre del modo de transporte, correspondiente a MetroRiel.
+        meta:
+          fuente: Catálogo de modos de transporte
+          transformacion: Asociación del viaje con el modo MetroRiel.
+
+      - name: zona_entrada_sk
+        description: Identificador de la zona donde comienza el viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Asociación de la zona de entrada con la dimensión geográfica.
+
+      - name: zona_salida_sk
+        description: Identificador de la zona donde finaliza el viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Asociación de la zona de salida con la dimensión geográfica.
+
+      - name: zona_entrada
+        description: Nombre de la zona de origen del viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Normalización del nombre de la zona de entrada.
+
+      - name: zona_salida
+        description: Nombre de la zona de destino del viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Normalización del nombre de la zona de salida.
+
+      - name: hora_entrada_sk
+        description: Clave horaria correspondiente a la entrada del viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Extracción de la hora de entrada del viaje.
+
+      - name: hora_salida_sk
+        description: Clave horaria correspondiente a la salida del viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Extracción de la hora de salida del viaje.
+
+      - name: estacion_entrada_id
+        description: Identificador de la estación donde inicia el viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Conservación del identificador de la estación de entrada.
+
+      - name: estacion_entrada
+        description: Nombre de la estación donde inicia el viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Obtención del nombre de la estación de entrada.
+
+      - name: estacion_salida_id
+        description: Identificador de la estación donde finaliza el viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Conservación del identificador de la estación de salida.
+
+      - name: estacion_salida
+        description: Nombre de la estación donde finaliza el viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Obtención del nombre de la estación de salida.
+
+      - name: fecha_hora_entrada
+        description: Fecha y hora de inicio del viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Obtención de la marca temporal de entrada.
+
+      - name: fecha_hora_salida
+        description: Fecha y hora de finalización del viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Obtención de la marca temporal de salida.
+
+      - name: monto_gtq
+        description: Importe monetario del viaje expresado en quetzales.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Normalización del importe monetario a quetzales.
+
+      - name: modo_sk
+        description: Clave del modo de transporte correspondiente a MetroRiel.
+        meta:
+          fuente: gold.dim_modo
+          transformacion: Asociación del viaje con el modo MetroRiel.
+        data_tests:
+          - not_null
+
+      - name: usuario_sk
+        description: Identificador seudonimizado del usuario que realizó el viaje.
+        meta:
+          fuente: silver.dim_usuario_conformado
+          transformacion: Asociación del viaje con la clave seudonimizada del usuario.
+        data_tests:
+          - not_null
+
+      - name: fecha_sk
+        description: Identificador de la fecha de entrada en formato YYYYMMDD.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Conversión de la fecha de entrada a una clave de calendario.
+        data_tests:
+          - not_null
+
+      - name: duracion_segundos
+        description: >
+          Duración del viaje expresada en segundos. Es una medida
+          cuantitativa que permite calcular duraciones totales
+          y promedios de viaje.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Obtención de la duración del viaje en segundos.
+          clasificacion: Aditiva
+        data_tests:
+          - not_null
+
+      - name: cantidad_viajes
+        description: >
+          Medida aditiva que representa un viaje válido de MetroRiel.
+          Cada registro tiene un valor unitario de 1.
+        meta:
+          fuente: silver.metroriel_viajes
+          transformacion: Asignación del valor 1 a cada viaje válido.
+          clasificacion: Aditiva
+        data_tests:
+          - not_null

@@ -470,6 +470,45 @@ Editar `.env` con las credenciales correspondientes.
 
 **Importante:** no subir `.env` a GitHub.
 
+### Variables de entorno
+
+| Variable | Descripción |
+|---|---|
+| `POSTGRES_HOST` | Dirección del servidor PostgreSQL. |
+| `POSTGRES_PORT` | Puerto de PostgreSQL, normalmente `5432`. |
+| `POSTGRES_DB` | Nombre de la base de datos. |
+| `POSTGRES_USER` | Usuario de conexión a PostgreSQL. |
+| `POSTGRES_PASSWORD` | Contraseña de conexión a PostgreSQL. |
+| `USUARIO_SALT` | Clave secreta obligatoria utilizada para generar identificadores mediante HMAC-SHA256. |
+
+Para generar una clave privada:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Agregar la clave generada al archivo `.env` y mantenerla fuera del repositorio.
+
+El modelo `silver.dim_usuario_conformado` rechaza la ejecución si `USUARIO_SALT` está ausente o vacía.
+
+Cambiar esta clave modifica los identificadores seudonimizados y requiere reconstruir los modelos dependientes.
+
+## Generación de datos de prueba
+
+El proyecto incluye el script `generar_red_metropolitana.py`, que permite generar los datos utilizados en la simulación de la Red Metropolitana de Transporte.
+
+Desde la carpeta raíz del proyecto, ejecutar:
+
+```bash
+python generar_red_metropolitana.py
+```
+
+Los datos generados sirven como entrada para los procesos de ingesta Batch, Streaming y CDC, según la estructura implementada en el proyecto.
+
+**Importante:** este procedimiento debe ejecutarse antes de realizar la ingesta inicial cuando todavía no se dispone de los datos de origen.
+
+La generación de datos no sustituye los procesos de ingesta, transformación y validación del pipeline.
+
 ## 4. Levantar los servicios
 
 ```bash

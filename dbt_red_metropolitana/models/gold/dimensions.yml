@@ -1,81 +1,208 @@
 version: 2
+
 models:
-- name: dim_modo
-  columns:
-  - name: modo_sk
-    data_tests:
-    - not_null
-    - unique
-    description: Identificador numérico del modo de transporte.
+  - name: dim_modo
+    description: >
+      Dimensión que contiene el catálogo estandarizado de los cuatro
+      modos de transporte de la Red Metropolitana.
     meta:
       fuente: Catálogo definido en dim_modo.sql
-      transformacion: Asignación de claves numéricas a cada modo.
-  - name: modo_nombre
-    data_tests:
-    - not_null
-    - unique
-    description: Nombre estandarizado del operador.
-    meta:
-      fuente: Catálogo definido en dim_modo.sql
-      transformacion: Asignación de claves numéricas a cada modo.
-  description: Catálogo de los cuatro modos de transporte.
-- name: dim_hora
-  columns:
-  - name: hora_sk
-    data_tests:
-    - not_null
-    - unique
-    description: Clave de la hora en formato entero de 0 a 23.
+      transformacion: Asignación de identificadores a los modos de transporte.
+    columns:
+      - name: modo_sk
+        description: Identificador numérico único del modo de transporte.
+        meta:
+          fuente: Catálogo definido en dim_modo.sql
+          transformacion: Asignación de una clave numérica a cada modo.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: modo_nombre
+        description: Nombre estandarizado del modo de transporte.
+        meta:
+          fuente: Catálogo definido en dim_modo.sql
+          transformacion: Estandarización de los nombres de los cuatro modos.
+        data_tests:
+          - not_null
+          - unique
+
+  - name: dim_hora
+    description: >
+      Dimensión temporal que representa las 24 horas del día y permite
+      analizar los registros de movilidad por hora y franja horaria.
     meta:
       fuente: Serie de horas generada en PostgreSQL
-      transformacion: Generación de horas de 0 a 23 y clasificación horaria.
-  description: Dimensión horaria con 24 horas y clasificación de franjas.
-- name: dim_fecha
-  columns:
-  - name: fecha_sk
-    data_tests:
-    - not_null
-    - unique
-    description: Clave de fecha en formato YYYYMMDD.
+      transformacion: Generación de las horas de 0 a 23 y clasificación horaria.
+    columns:
+      - name: hora_sk
+        description: Clave numérica que identifica cada hora del día, de 0 a 23.
+        meta:
+          fuente: Serie de horas generada en PostgreSQL
+          transformacion: Generación de una secuencia de enteros de 0 a 23.
+        data_tests:
+          - not_null
+          - unique
+      - name: hora
+        description: Hora del día representada mediante un número entero.
+        meta:
+          fuente: Serie de horas generada en PostgreSQL
+          transformacion: Generación de valores horarios entre 0 y 23.
+
+      - name: franja_horaria
+        description: Categoría horaria utilizada para analizar los períodos del día.
+        meta:
+          fuente: gold.dim_hora
+          transformacion: Clasificación de las horas en franjas horarias.
+
+      - name: es_hora_pico
+        description: Indicador booleano que identifica los horarios de mayor demanda.
+        meta:
+          fuente: gold.dim_hora
+          transformacion: Identificación de horas pico según las reglas del modelo.
+
+
+  - name: dim_fecha
+    description: >
+      Dimensión calendario que permite analizar la movilidad durante
+      el período registrado en las fuentes de transporte.
     meta:
       fuente: Fechas de los cuatro operadores en Silver
-      transformacion: Generación de calendario entre la fecha mínima y máxima.
-  - name: fecha
-    data_tests:
-    - not_null
-    - unique
-    description: Fecha calendario correspondiente a la clave.
-    meta:
-      fuente: Fechas de los cuatro operadores en Silver
-      transformacion: Generación de calendario entre la fecha mínima y máxima.
-  description: Calendario de fechas del período registrado en la red.
-- name: dim_usuario
-  columns:
-  - name: usuario_sk
-    data_tests:
-    - not_null
-    - unique
-    description: Identificador seudonimizado del usuario.
+      transformacion: Generación de un calendario entre las fechas mínima y máxima.
+    columns:
+      - name: fecha_sk
+        description: Identificador numérico de la fecha en formato YYYYMMDD.
+        meta:
+          fuente: Fechas de los cuatro operadores en Silver
+          transformacion: Conversión de la fecha a una clave numérica YYYYMMDD.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: fecha
+        description: Fecha calendario correspondiente al identificador.
+        meta:
+          fuente: Fechas de los cuatro operadores en Silver
+          transformacion: Generación de fechas consecutivas dentro del período analizado.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: dia
+        description: Día del mes correspondiente a la fecha.
+        meta:
+          fuente: gold.dim_fecha
+          transformacion: Extracción del día de la fecha calendario.
+
+      - name: mes
+        description: Número del mes correspondiente a la fecha.
+        meta:
+          fuente: gold.dim_fecha
+          transformacion: Extracción del mes de la fecha calendario.
+
+      - name: anio
+        description: Año correspondiente a la fecha.
+        meta:
+          fuente: gold.dim_fecha
+          transformacion: Extracción del año de la fecha calendario.
+
+      - name: trimestre
+        description: Trimestre del año al que pertenece la fecha.
+        meta:
+          fuente: gold.dim_fecha
+          transformacion: Clasificación de la fecha en uno de los cuatro trimestres.
+
+      - name: dia_semana
+        description: Número que representa el día de la semana.
+        meta:
+          fuente: gold.dim_fecha
+          transformacion: Obtención del día de la semana a partir de la fecha.
+
+      - name: es_dia_habil
+        description: Indicador booleano que identifica los días hábiles.
+        meta:
+          fuente: gold.dim_fecha
+          transformacion: Clasificación de los días según el calendario laboral.
+
+      - name: es_fin_semana
+        description: Indicador booleano que identifica los fines de semana.
+        meta:
+          fuente: gold.dim_fecha
+          transformacion: Clasificación de los días correspondientes al fin de semana.
+
+
+  - name: dim_usuario
+    description: >
+      Dimensión de usuarios conformados de la Red Metropolitana.
+      Integra los identificadores de los diferentes operadores y
+      permite analizar la utilización de uno o varios modos de transporte.
     meta:
       fuente: silver.dim_usuario_conformado
-      transformacion: Agrupación por usuario y agregación de atributos y modos.
-  description: Usuarios conformados y sus modos de transporte identificados.
-- name: dim_zona
-  columns:
-  - name: zona_sk
-    data_tests:
-    - not_null
-    - unique
-    description: Identificador de la zona.
+      transformacion: Agrupación por identificador seudonimizado y consolidación de atributos y modos.
+    columns:
+      - name: usuario_sk
+        description: >
+          Identificador seudonimizado del usuario mediante HMAC-SHA256
+          con una clave secreta configurada en USUARIO_SALT.
+        meta:
+          fuente: silver.dim_usuario_conformado
+          transformacion: Consolidación de la clave seudonimizada del usuario.
+        data_tests:
+          - not_null
+          - unique
+      - name: perfil
+        description: Perfil del usuario registrado en el padrón de Transmetro.
+        meta:
+          fuente: silver.dim_usuario_conformado
+          transformacion: Consolidación del perfil disponible para el usuario.
+
+      - name: zona_residencia
+        description: Zona de residencia asociada al usuario en el padrón.
+        meta:
+          fuente: silver.dim_usuario_conformado
+          transformacion: Consolidación de la zona de residencia disponible.
+
+      - name: activo_en_transmetro
+        description: Indicador del estado activo del usuario en Transmetro.
+        meta:
+          fuente: silver.dim_usuario_conformado
+          transformacion: Consolidación del estado de actividad registrado en el padrón.
+
+      - name: modos_identificados
+        description: Lista de modos de transporte asociados al usuario.
+        meta:
+          fuente: silver.dim_usuario_conformado
+          transformacion: Agrupación de los nombres de los modos identificados.
+
+      - name: cantidad_modos_identificados
+        description: Cantidad de modos de transporte distintos asociados al usuario.
+        meta:
+          fuente: silver.dim_usuario_conformado
+          transformacion: Conteo de modos de transporte distintos por usuario.
+
+
+  - name: dim_zona
+    description: >
+      Dimensión geográfica que contiene las zonas normalizadas
+      utilizadas para el análisis territorial de la movilidad.
     meta:
       fuente: silver.dim_zona_conformada
-      transformacion: Proyección de las claves y nombres conformados.
-  - name: zona_nombre
-    data_tests:
-    - not_null
-    - unique
-    description: Nombre normalizado de la zona.
-    meta:
-      fuente: silver.dim_zona_conformada
-      transformacion: Proyección de las claves y nombres conformados.
-  description: Catálogo de zonas geográficas normalizadas.
+      transformacion: Proyección de identificadores y nombres de zonas conformadas.
+    columns:
+      - name: zona_sk
+        description: Identificador único de la zona geográfica.
+        meta:
+          fuente: silver.dim_zona_conformada
+          transformacion: Obtención del identificador de zona conformado.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: zona_nombre
+        description: Nombre estandarizado de la zona geográfica.
+        meta:
+          fuente: silver.dim_zona_conformada
+          transformacion: Obtención del nombre normalizado de la zona.
+        data_tests:
+          - not_null
+          - unique

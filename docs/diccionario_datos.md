@@ -8,74 +8,113 @@ Para cada campo se indica qué significa, de qué fuente sale y qué transformac
 
 ### `gold.dim_modo`
 
-Catálogo de los cuatro modos de transporte.
+Dimensión que contiene el catálogo estandarizado de los cuatro modos de transporte de la Red Metropolitana.
 
 | Campo | Significado | Fuente | Transformación |
 |---|---|---|---|
-| `modo_sk` | Identificador numérico del modo de transporte. | Catálogo definido en dim_modo.sql | Asignación de claves numéricas a cada modo. |
-| `modo_nombre` | Nombre estandarizado del operador. | Catálogo definido en dim_modo.sql | Asignación de claves numéricas a cada modo. |
+| `modo_sk` | Identificador numérico único del modo de transporte. | Catálogo definido en dim_modo.sql | Asignación de una clave numérica a cada modo. |
+| `modo_nombre` | Nombre estandarizado del modo de transporte. | Catálogo definido en dim_modo.sql | Estandarización de los nombres de los cuatro modos. |
 
 ### `gold.dim_hora`
 
-Dimensión horaria con 24 horas y clasificación de franjas.
+Dimensión temporal que representa las 24 horas del día y permite analizar los registros de movilidad por hora y franja horaria.
 
 | Campo | Significado | Fuente | Transformación |
 |---|---|---|---|
-| `hora_sk` | Clave de la hora en formato entero de 0 a 23. | Serie de horas generada en PostgreSQL | Generación de horas de 0 a 23 y clasificación horaria. |
+| `hora_sk` | Clave numérica que identifica cada hora del día, de 0 a 23. | Serie de horas generada en PostgreSQL | Generación de una secuencia de enteros de 0 a 23. |
+| `hora` | Hora del día representada mediante un número entero. | Serie de horas generada en PostgreSQL | Generación de valores horarios entre 0 y 23. |
+| `franja_horaria` | Categoría horaria utilizada para analizar los períodos del día. | gold.dim_hora | Clasificación de las horas en franjas horarias. |
+| `es_hora_pico` | Indicador booleano que identifica los horarios de mayor demanda. | gold.dim_hora | Identificación de horas pico según las reglas del modelo. |
 
 ### `gold.dim_fecha`
 
-Calendario de fechas del período registrado en la red.
+Dimensión calendario que permite analizar la movilidad durante el período registrado en las fuentes de transporte.
 
 | Campo | Significado | Fuente | Transformación |
 |---|---|---|---|
-| `fecha_sk` | Clave de fecha en formato YYYYMMDD. | Fechas de los cuatro operadores en Silver | Generación de calendario entre la fecha mínima y máxima. |
-| `fecha` | Fecha calendario correspondiente a la clave. | Fechas de los cuatro operadores en Silver | Generación de calendario entre la fecha mínima y máxima. |
+| `fecha_sk` | Identificador numérico de la fecha en formato YYYYMMDD. | Fechas de los cuatro operadores en Silver | Conversión de la fecha a una clave numérica YYYYMMDD. |
+| `fecha` | Fecha calendario correspondiente al identificador. | Fechas de los cuatro operadores en Silver | Generación de fechas consecutivas dentro del período analizado. |
+| `dia` | Día del mes correspondiente a la fecha. | gold.dim_fecha | Extracción del día de la fecha calendario. |
+| `mes` | Número del mes correspondiente a la fecha. | gold.dim_fecha | Extracción del mes de la fecha calendario. |
+| `anio` | Año correspondiente a la fecha. | gold.dim_fecha | Extracción del año de la fecha calendario. |
+| `trimestre` | Trimestre del año al que pertenece la fecha. | gold.dim_fecha | Clasificación de la fecha en uno de los cuatro trimestres. |
+| `dia_semana` | Número que representa el día de la semana. | gold.dim_fecha | Obtención del día de la semana a partir de la fecha. |
+| `es_dia_habil` | Indicador booleano que identifica los días hábiles. | gold.dim_fecha | Clasificación de los días según el calendario laboral. |
+| `es_fin_semana` | Indicador booleano que identifica los fines de semana. | gold.dim_fecha | Clasificación de los días correspondientes al fin de semana. |
 
 ### `gold.dim_usuario`
 
-Usuarios conformados y sus modos de transporte identificados.
+Dimensión de usuarios conformados de la Red Metropolitana. Integra los identificadores de los diferentes operadores y permite analizar la utilización de uno o varios modos de transporte.
 
 | Campo | Significado | Fuente | Transformación |
 |---|---|---|---|
-| `usuario_sk` | Identificador seudonimizado del usuario. | silver.dim_usuario_conformado | Agrupación por usuario y agregación de atributos y modos. |
+| `usuario_sk` | Identificador seudonimizado del usuario mediante HMAC-SHA256 con una clave secreta configurada en USUARIO_SALT. | silver.dim_usuario_conformado | Consolidación de la clave seudonimizada del usuario. |
+| `perfil` | Perfil del usuario registrado en el padrón de Transmetro. | silver.dim_usuario_conformado | Consolidación del perfil disponible para el usuario. |
+| `zona_residencia` | Zona de residencia asociada al usuario en el padrón. | silver.dim_usuario_conformado | Consolidación de la zona de residencia disponible. |
+| `activo_en_transmetro` | Indicador del estado activo del usuario en Transmetro. | silver.dim_usuario_conformado | Consolidación del estado de actividad registrado en el padrón. |
+| `modos_identificados` | Lista de modos de transporte asociados al usuario. | silver.dim_usuario_conformado | Agrupación de los nombres de los modos identificados. |
+| `cantidad_modos_identificados` | Cantidad de modos de transporte distintos asociados al usuario. | silver.dim_usuario_conformado | Conteo de modos de transporte distintos por usuario. |
 
 ### `gold.dim_zona`
 
-Catálogo de zonas geográficas normalizadas.
+Dimensión geográfica que contiene las zonas normalizadas utilizadas para el análisis territorial de la movilidad.
 
 | Campo | Significado | Fuente | Transformación |
 |---|---|---|---|
-| `zona_sk` | Identificador de la zona. | silver.dim_zona_conformada | Proyección de las claves y nombres conformados. |
-| `zona_nombre` | Nombre normalizado de la zona. | silver.dim_zona_conformada | Proyección de las claves y nombres conformados. |
+| `zona_sk` | Identificador único de la zona geográfica. | silver.dim_zona_conformada | Obtención del identificador de zona conformado. |
+| `zona_nombre` | Nombre estandarizado de la zona geográfica. | silver.dim_zona_conformada | Obtención del nombre normalizado de la zona. |
 
 ## Capa Gold - tablas de hechos
 
 ### `gold.fct_abordajes`
 
-Un abordaje válido de Transmetro, Transurbano o Aerometro por fila.
+Tabla de hechos que registra un abordaje válido de Transmetro, Transurbano o Aerómetro por fila. Permite analizar la demanda de transporte mediante dimensiones temporales, geográficas y de usuarios.
 
 | Campo | Significado | Fuente | Transformación |
 |---|---|---|---|
-| `abordaje_sk` | Clave única MD5 del modo y evento original. | Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings | Unión de abordajes, normalización de zonas y enlace con dimensiones. |
-| `modo_sk` | Clave del modo de transporte. | Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings | Unión de abordajes, normalización de zonas y enlace con dimensiones. |
-| `usuario_sk` | Clave seudonimizada del usuario. | Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings | Unión de abordajes, normalización de zonas y enlace con dimensiones. |
-| `fecha_sk` | Fecha del abordaje en formato YYYYMMDD. | Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings | Unión de abordajes, normalización de zonas y enlace con dimensiones. |
-| `hora_sk` | Hora local del abordaje. | Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings | Unión de abordajes, normalización de zonas y enlace con dimensiones. |
-| `cantidad_abordajes` | Indicador unitario de abordaje; valor 1. | Silver: transmetro_validaciones, transurbano_transacciones y aerometro_boardings | Unión de abordajes, normalización de zonas y enlace con dimensiones. |
+| `abordaje_sk` | Identificador único del abordaje generado mediante MD5. | Identificadores de eventos de los tres operadores en Silver | Generación de una clave única a partir del modo y evento original. |
+| `evento_origen_id` | Identificador del evento en el sistema de origen. | Eventos de los operadores en Silver | Conservación del identificador original del evento. |
+| `modo_nombre` | Nombre del modo de transporte asociado al abordaje. | Catálogo de modos de transporte | Asociación del evento con su modo correspondiente. |
+| `zona_sk` | Identificador de la zona asociada al abordaje. | Datos geográficos de los eventos en Silver | Asociación del evento con la zona normalizada. |
+| `zona_nombre` | Nombre de la zona asociada al abordaje. | Datos geográficos de los eventos en Silver | Obtención del nombre normalizado de la zona. |
+| `ubicacion_codigo` | Código de ubicación registrado para el evento. | Eventos de los operadores en Silver | Conservación del código de ubicación del evento. |
+| `servicio` | Servicio de transporte asociado al abordaje. | Eventos de los operadores en Silver | Estandarización del servicio asociado al evento. |
+| `fecha_hora_local` | Fecha y hora local del abordaje. | Fecha y hora del evento en Silver | Obtención de la marca temporal local del evento. |
+| `monto_gtq` | Monto monetario del abordaje expresado en quetzales. | Datos monetarios de los operadores en Silver | Normalización del monto a quetzales. |
+| `operacion_exitosa` | Indicador booleano del resultado de la operación. | Eventos de los operadores en Silver | Identificación del estado exitoso de la operación. |
+| `modo_sk` | Clave que identifica el modo de transporte utilizado. | gold.dim_modo | Asociación del abordaje con el catálogo de modos. |
+| `usuario_sk` | Identificador seudonimizado del usuario que realizó el abordaje. | silver.dim_usuario_conformado | Asociación del abordaje con la clave seudonimizada del usuario. |
+| `fecha_sk` | Identificador de la fecha del abordaje en formato YYYYMMDD. | Fechas de los eventos registrados en Silver | Conversión de la fecha del evento a una clave de calendario. |
+| `hora_sk` | Identificador de la hora en que ocurrió el abordaje. | Horas de los eventos registrados en Silver | Extracción de la hora del evento y asociación con la dimensión horaria. |
+| `cantidad_abordajes` | Medida aditiva que representa un abordaje válido. Cada registro tiene un valor unitario de 1. | Eventos válidos de Transmetro, Transurbano y Aerómetro | Asignación del valor 1 a cada abordaje válido. |
 
 ### `gold.fct_viajes_metroriel`
 
-Un viaje completo y válido de MetroRiel por fila.
+Tabla de hechos que registra un viaje completo y válido de MetroRiel por fila. Permite analizar la cantidad de viajes y su duración.
 
 | Campo | Significado | Fuente | Transformación |
 |---|---|---|---|
-| `viaje_sk` | Clave MD5 generada a partir del identificador del viaje. | silver.metroriel_viajes | Enlace de viajes válidos con dimensiones y cálculo de claves. |
-| `modo_sk` | Clave correspondiente a MetroRiel. | silver.metroriel_viajes | Enlace de viajes válidos con dimensiones y cálculo de claves. |
-| `usuario_sk` | Clave seudonimizada del usuario. | silver.metroriel_viajes | Enlace de viajes válidos con dimensiones y cálculo de claves. |
-| `fecha_sk` | Fecha de entrada en formato YYYYMMDD. | silver.metroriel_viajes | Enlace de viajes válidos con dimensiones y cálculo de claves. |
-| `duracion_segundos` | Duración del viaje expresada en segundos. | silver.metroriel_viajes | Enlace de viajes válidos con dimensiones y cálculo de claves. |
-| `cantidad_viajes` | Indicador unitario de viaje; valor 1. | silver.metroriel_viajes | Enlace de viajes válidos con dimensiones y cálculo de claves. |
+| `viaje_sk` | Identificador único del viaje generado mediante MD5. | silver.metroriel_viajes | Generación de una clave a partir del identificador del viaje. |
+| `viaje_id` | Identificador original del viaje de MetroRiel. | silver.metroriel_viajes | Conservación del identificador del viaje. |
+| `modo_nombre` | Nombre del modo de transporte, correspondiente a MetroRiel. | Catálogo de modos de transporte | Asociación del viaje con el modo MetroRiel. |
+| `zona_entrada_sk` | Identificador de la zona donde comienza el viaje. | silver.metroriel_viajes | Asociación de la zona de entrada con la dimensión geográfica. |
+| `zona_salida_sk` | Identificador de la zona donde finaliza el viaje. | silver.metroriel_viajes | Asociación de la zona de salida con la dimensión geográfica. |
+| `zona_entrada` | Nombre de la zona de origen del viaje. | silver.metroriel_viajes | Normalización del nombre de la zona de entrada. |
+| `zona_salida` | Nombre de la zona de destino del viaje. | silver.metroriel_viajes | Normalización del nombre de la zona de salida. |
+| `hora_entrada_sk` | Clave horaria correspondiente a la entrada del viaje. | silver.metroriel_viajes | Extracción de la hora de entrada del viaje. |
+| `hora_salida_sk` | Clave horaria correspondiente a la salida del viaje. | silver.metroriel_viajes | Extracción de la hora de salida del viaje. |
+| `estacion_entrada_id` | Identificador de la estación donde inicia el viaje. | silver.metroriel_viajes | Conservación del identificador de la estación de entrada. |
+| `estacion_entrada` | Nombre de la estación donde inicia el viaje. | silver.metroriel_viajes | Obtención del nombre de la estación de entrada. |
+| `estacion_salida_id` | Identificador de la estación donde finaliza el viaje. | silver.metroriel_viajes | Conservación del identificador de la estación de salida. |
+| `estacion_salida` | Nombre de la estación donde finaliza el viaje. | silver.metroriel_viajes | Obtención del nombre de la estación de salida. |
+| `fecha_hora_entrada` | Fecha y hora de inicio del viaje. | silver.metroriel_viajes | Obtención de la marca temporal de entrada. |
+| `fecha_hora_salida` | Fecha y hora de finalización del viaje. | silver.metroriel_viajes | Obtención de la marca temporal de salida. |
+| `monto_gtq` | Importe monetario del viaje expresado en quetzales. | silver.metroriel_viajes | Normalización del importe monetario a quetzales. |
+| `modo_sk` | Clave del modo de transporte correspondiente a MetroRiel. | gold.dim_modo | Asociación del viaje con el modo MetroRiel. |
+| `usuario_sk` | Identificador seudonimizado del usuario que realizó el viaje. | silver.dim_usuario_conformado | Asociación del viaje con la clave seudonimizada del usuario. |
+| `fecha_sk` | Identificador de la fecha de entrada en formato YYYYMMDD. | silver.metroriel_viajes | Conversión de la fecha de entrada a una clave de calendario. |
+| `duracion_segundos` | Duración del viaje expresada en segundos. Es una medida cuantitativa que permite calcular duraciones totales y promedios de viaje. | silver.metroriel_viajes | Obtención de la duración del viaje en segundos. |
+| `cantidad_viajes` | Medida aditiva que representa un viaje válido de MetroRiel. Cada registro tiene un valor unitario de 1. | silver.metroriel_viajes | Asignación del valor 1 a cada viaje válido. |
 
 ## Capa Gold - vistas para el tablero
 

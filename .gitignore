@@ -27,3 +27,7 @@ dbt_red_metropolitana/.user.yml
 
 # ARCHIVOS DE MACOS
 .DS_Store
+
+# Respaldos de bases de datos
+*.backup
+*.dump

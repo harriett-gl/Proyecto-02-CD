@@ -69,12 +69,12 @@ Los campos `ubicacion_codigo` y `servicio` se mantienen como dimensiones degener
 | Medida | Clasificación | Justificación |
 |---|---|---|
 | `cantidad_abordajes` | Aditiva | Puede sumarse por fecha, modo, hora y zona. |
-| `monto_gtq` | Aditiva | Puede sumarse para calcular ingresos por cualquier dimensión. |
+| `monto_gtq` | Aditiva | Puede sumarse para calcular ingresos por las dimensiones aplicables. |
 | `cantidad_viajes` | Aditiva | Puede sumarse entre fechas, usuarios y estaciones. |
 | `duracion_segundos` | Aditiva | Puede sumarse para obtener el tiempo total acumulado de viaje. |
-| Tarjetas activas a una fecha de corte | Semi-aditiva | Puede sumarse entre zonas, pero no entre fechas porque duplicaría el saldo de usuarios. |
-| Promedio de gasto por viaje | No aditiva | Debe recalcularse dividiendo el monto total entre la cantidad de viajes. |
-| Usuarios distintos | No aditiva | Un mismo usuario puede aparecer en varias zonas, fechas y modos. |
+| Promedio de gasto por viaje | No aditiva | Se calcula dividiendo el monto total entre la cantidad de viajes; no deben sumarse promedios. |
+| Usuarios distintos | No aditiva | Un mismo usuario puede aparecer en varias zonas, fechas y modos, por lo que requiere un conteo distinto en el contexto analizado. |
+
 
 ## Decisiones de diseño
 
