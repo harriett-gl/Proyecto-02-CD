@@ -18,6 +18,14 @@ valid_trips AS (
         trip_timestamp,
         amount_gtq
     FROM {{ ref('churn_valid_trips') }}
+    -- Solo para la auditoría de recorte: impedir que esta consulta vea eventos futuros.
+    -- Por defecto no se aplica ningún filtro extra.
+    {% if var("churn_audit_cutoff", none) %}
+    WHERE trip_timestamp < (
+        (DATE '{{ var("churn_audit_cutoff") }}')::timestamp
+        AT TIME ZONE 'America/Guatemala'
+    )
+    {% endif %}
 ),
 
 -- Restringir viajes al periodo histórico completo
