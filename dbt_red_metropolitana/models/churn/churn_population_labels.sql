@@ -2,11 +2,12 @@
 
 -- Definir los cortes temporales del proyecto
 WITH cuts AS (
-    SELECT DATE '2026-07-01' AS cutoff_date, 'A' AS cut_name, TRUE AS has_label
+    -- Las fechas se pueden configurar con --vars sin cambiar el SQL.
+    SELECT DATE '{{ var("churn_cut_a", "2026-07-01") }}' AS cutoff_date, 'A' AS cut_name, TRUE AS has_label
     UNION ALL
-    SELECT DATE '2026-07-31', 'B', TRUE
+    SELECT DATE '{{ var("churn_cut_b", "2026-07-31") }}', 'B', TRUE
     UNION ALL
-    SELECT DATE '2026-08-30', 'C', FALSE
+    SELECT DATE '{{ var("churn_cut_c", "2026-08-30") }}', 'C', FALSE
 ),
 
 -- Unificar los abordajes válidos de los cuatro medios
