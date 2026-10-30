@@ -8,7 +8,7 @@ import sqlite3
 import time
 
 import pandas as pd
-from kafka import KafkaConsumer
+from kafka import KafkaConsumer, TopicPartition
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,10 +26,11 @@ FUENTES = {
 }
 
 
-def crear_base_control():
-    CONTROL_DIR.mkdir(parents=True, exist_ok=True)
+def crear_base_control(state_file=None):
+    ruta_estado = Path(state_file or STATE_FILE).resolve()
+    ruta_estado.parent.mkdir(parents=True, exist_ok=True)
 
-    conexion = sqlite3.connect(STATE_FILE)
+    conexion = sqlite3.connect(ruta_estado)
 
     conexion.execute("""
         CREATE TABLE IF NOT EXISTS processed_occurrences (
@@ -48,13 +49,18 @@ def crear_base_control():
     return conexion
 
 
-def crear_consumidor(nombre_fuente):
+def crear_consumidor(nombre_fuente, start_offset=None):
     topico = FUENTES[nombre_fuente]["topico"]
 
-    return KafkaConsumer(
-        topico,
-        bootstrap_servers="localhost:9092",
-        group_id=f"bronze-{nombre_fuente}-v1",
+    group_id = (
+        f"bronze-{nombre_fuente}-v1"
+        if start_offset is None
+        else f"bronze-{nombre_fuente}-rebuild-{start_offset}"
+    )
+
+    consumidor = KafkaConsumer(
+        bootstrap_servers="localhost:9094",
+        group_id=group_id,
         auto_offset_reset="earliest",
         enable_auto_commit=False,
         consumer_timeout_ms=120000,
@@ -63,11 +69,40 @@ def crear_consumidor(nombre_fuente):
         )
     )
 
+    if start_offset is None:
+        consumidor.subscribe([topico])
 
-def consumir_fuente(nombre_fuente):
+    if start_offset is not None:
+        if start_offset < 0:
+            raise ValueError("El offset inicial no puede ser negativo.")
+
+        partition = TopicPartition(topico, 0)
+        consumidor.assign([partition])
+
+        beginning = consumidor.beginning_offsets([partition])[partition]
+        end = consumidor.end_offsets([partition])[partition]
+
+        if not beginning <= start_offset <= end:
+            consumidor.close()
+            raise ValueError(
+                f"Offset {start_offset} fuera del rango "
+                f"[{beginning}, {end}] para {topico}"
+            )
+
+        consumidor.seek(partition, start_offset)
+
+    return consumidor
+
+
+def consumir_fuente(
+    nombre_fuente,
+    start_offset=None,
+    state_file=None,
+    output_dir=None,
+):
     inicio = time.perf_counter()
-    consumidor = crear_consumidor(nombre_fuente)
-    conexion = crear_base_control()
+    consumidor = crear_consumidor(nombre_fuente, start_offset)
+    conexion = crear_base_control(state_file)
     cursor = conexion.cursor()
 
     fecha_hora = datetime.now(ZoneInfo("America/Guatemala"))
@@ -89,9 +124,26 @@ def consumir_fuente(nombre_fuente):
             evento = mensaje.value
 
             if evento.get("control") == "END":
+                if evento.get("source") != nombre_fuente:
+                    raise ValueError(
+                        "La señal END pertenece a otra fuente."
+                    )
+
+                total_esperado = int(evento["total"])
+
+                if mensajes_leidos != total_esperado:
+                    raise ValueError(
+                        f"Cantidad incorrecta para {nombre_fuente}: "
+                        f"esperados={total_esperado}, "
+                        f"recibidos={mensajes_leidos}"
+                    )
+
                 encontro_fin = True
                 ultimo_offset = mensaje.offset
-                print("Se recibió la señal de finalización.")
+                print(
+                    f"Se recibió END: {mensajes_leidos:,} "
+                    "eventos verificados."
+                )
                 break
 
             mensajes_leidos += 1
@@ -141,11 +193,14 @@ def consumir_fuente(nombre_fuente):
                 print(f"Mensajes leídos: {mensajes_leidos:,}")
 
         if not encontro_fin:
-            print("ADVERTENCIA: no se recibió la señal END.")
+            raise RuntimeError(
+                f"No se recibió la señal END de {nombre_fuente}. "
+                "No se confirmará el lote incompleto."
+            )
 
         if registros_nuevos:
             directorio_salida = (
-                BRONZE_DIR
+                (output_dir or BRONZE_DIR)
                 / "streaming"
                 / nombre_fuente
                 / f"ingestion_date={ingestion_date}"
@@ -201,8 +256,34 @@ def main():
         choices=["transmetro", "aerometro"]
     )
 
+    parser.add_argument(
+        "--start-offset",
+        type=int,
+        default=None,
+        help="Offset inicial para reconstrucción controlada",
+    )
+
+    parser.add_argument(
+        "--state-file",
+        type=Path,
+        default=None,
+        help="Archivo SQLite independiente para la ejecución",
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Directorio Bronze independiente para la ejecución",
+    )
+
     argumentos = parser.parse_args()
-    consumir_fuente(argumentos.fuente)
+    consumir_fuente(
+        argumentos.fuente,
+        start_offset=argumentos.start_offset,
+        state_file=argumentos.state_file,
+        output_dir=argumentos.output_dir,
+    )
 
 
 if __name__ == "__main__":

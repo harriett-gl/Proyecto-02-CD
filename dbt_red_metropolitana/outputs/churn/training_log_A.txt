@@ -1,0 +1,49 @@
+
+=== PREPARACIÓN DE DATOS — CORTE A ===
+Usuarios: 59,796
+Características: 14
+Usuarios churn: 7,396
+Usuarios no churn: 52,400
+Tasa de abandono: 12.37%
+Particiones de validación: 5
+Valores faltantes después de preparar X: 0
+
+=== CARACTERÍSTICAS ===
+- trips_28d
+- trips_7d
+- active_days_28d
+- days_since_last_trip
+- transport_modes_count
+- is_multimodal
+- transmetro_trips
+- transurbano_trips
+- metroriel_trips
+- aerometro_trips
+- weekend_trip_ratio
+- peak_hour_trip_ratio
+- total_spending_gtq
+- average_spending_gtq
+
+Datos preparados correctamente.
+
+=== COMPARACIÓN DE MODELOS — CORTE A ===
+              model  pr_auc_mean  pr_auc_std  roc_auc_mean
+       Logística L2     0.429148    0.014108      0.835311
+       Logística L1     0.428200    0.014151      0.833428
+Baseline frecuencia     0.262542    0.004275      0.744014
+ Baseline constante     0.123687    0.000029      0.500000
+
+=== CINCO COEFICIENTES POSITIVOS MÁS IMPORTANTES ===
+             feature  coefficient
+days_since_last_trip     0.649837
+     metroriel_trips     0.034831
+  weekend_trip_ratio     0.032439
+    transmetro_trips     0.023573
+peak_hour_trip_ratio     0.021246
+
+=== MODELO SELECCIONADO ===
+Regularización: L2
+C seleccionado: 0.001
+PR-AUC CV: 0.4291
+
+Archivos guardados en: /Users/harriettguzman/PycharmProjects/Proyecto 02/dbt_red_metropolitana/outputs/churn

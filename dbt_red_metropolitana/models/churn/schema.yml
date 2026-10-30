@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: churn_population_labels
+    description: "Población elegible y etiquetas de abandono por corte temporal."
+    columns:
+      - name: cut_name
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['A', 'B', 'C']
+      - name: cutoff_date
+        tests:
+          - not_null
+      - name: usuario_sk
+        tests:
+          - not_null
+      - name: trips_previous_28d
+        tests:
+          - not_null
+
+  - name: churn_features
+    description: "Características históricas de movilidad para predicción de abandono."
+    columns:
+      - name: cut_name
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['A', 'B', 'C']
+      - name: cutoff_date
+        tests:
+          - not_null
+      - name: usuario_sk
+        tests:
+          - not_null
+      - name: trips_28d
+        tests:
+          - not_null
+      - name: trips_7d
+        tests:
+          - not_null
+      - name: days_since_last_trip
+        tests:
+          - not_null
+      - name: transport_modes_count
+        tests:
+          - not_null

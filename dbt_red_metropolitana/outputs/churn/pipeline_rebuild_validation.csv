@@ -1,0 +1,10 @@
+archivo,registros_esperados,registros_bronze,diferencia,estado
+tm_estaciones.csv,104,104,0,PASS
+tu_paradas.csv,328,328,0,PASS
+mr_estaciones.csv,22,22,0,PASS
+am_estaciones.csv,14,14,0,PASS
+transurbano_transacciones.csv,1635788,1635788,0,PASS
+metroriel_viajes.jsonl,590844,590844,0,PASS
+cdc_padron_usuarios.csv,77636,77636,0,PASS
+transmetro_validaciones.csv,713786,713786,0,PASS
+aerometro_boardings.csv,387053,387053,0,PASS

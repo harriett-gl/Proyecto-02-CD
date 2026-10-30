@@ -609,3 +609,139 @@ Proyecto académico desarrollado por:
 - 💙 Harriett Guzmán
 
 **Universidad Rafael Landívar — Ciencia de Datos**
+
+---
+
+# 🚇 Proyecto 02 — Predicción de abandono
+## Fase 01 — Preparación de datos y modelado
+
+### Objetivo
+
+Desarrollar un modelo predictivo de abandono de usuarios
+de la Red Metropolitana de Transporte, utilizando datos
+históricos de movilidad y técnicas de aprendizaje supervisado.
+
+### Arquitectura
+
+El Proyecto 02 reutiliza la infraestructura de ingesta
+y transformación del Proyecto 01.
+
+Para la predicción de abandono se utilizan directamente
+las fuentes de la capa Silver, sin depender de las tablas
+de hechos de Gold.
+
+Flujo de procesamiento:
+
+```text
+Fuentes originales
+       |
+       v
+Bronze
+       |
+       v
+Staging
+       |
+       v
+Silver
+       |
+       v
+churn_valid_trips
+       |
+       +------> churn_population_labels
+       |
+       +------> churn_features
+                       |
+                       v
+              Modelos predictivos
+```
+
+### Definición de abandono
+
+La unidad de análisis es el usuario conformado `usuario_sk`.
+
+Se consideran elegibles los usuarios con al menos dos viajes
+válidos en los 28 días anteriores a la fecha de corte.
+
+Se considera abandono cuando no se registran viajes durante
+los 30 días posteriores al corte.
+
+### Cortes temporales
+
+| Corte | Fecha | Usuarios | Abandono |
+|---|---|---:|---:|
+| A | 2026-07-01 | 59,796 | 7,396 (12.37%) |
+| B | 2026-07-31 | 58,372 | 6,671 (11.43%) |
+| C | 2026-08-30 | 57,925 | Sin etiqueta |
+
+### Características predictivas
+
+Se construyeron 14 características de movilidad, entre ellas:
+
+- Viajes realizados en los últimos 28 y 7 días.
+- Días de actividad.
+- Días desde el último viaje.
+- Cantidad de modos utilizados.
+- Viajes por operador.
+- Proporción de viajes en fin de semana.
+- Proporción de viajes en horario pico.
+- Gasto total y promedio.
+
+### Evaluación de modelos
+
+Se utilizó el corte A con validación cruzada estratificada
+de cinco particiones y semilla aleatoria 42.
+
+| Modelo | PR-AUC promedio | Desviación estándar |
+|---|---:|---:|
+| Baseline constante | 0.123687 | 0.000029 |
+| Baseline frecuencia | 0.262542 | 0.004275 |
+| Regresión logística L1 | 0.428200 | 0.014151 |
+| Regresión logística L2 | 0.429148 | 0.014108 |
+
+Modelo seleccionado: regresión logística L2, C = 0.001.
+
+El corte B se reserva para evaluación temporal posterior.
+
+### Validación técnica
+
+La migración de Gold a Silver fue verificada contra
+los resultados originales:
+
+- Población total: 176,093 registros.
+- Diferencias de población y etiquetas: 0.
+- Diferencias de características: 0.
+- Pruebas dbt de churn: 13 PASS.
+
+### Limitaciones de identidad
+
+Se identificaron 145,561 registros de identidad,
+93,009 usuarios conformados distintos y 42,854 usuarios
+identificados en varios modos.
+
+Los identificadores conformados no garantizan una
+correspondencia exacta con personas físicas.
+
+### Ejecución y validación
+
+Desde la carpeta `dbt_red_metropolitana`, con PostgreSQL
+y las variables de entorno correctamente configuradas:
+
+```bash
+dbt run --select churn_valid_trips churn_population_labels churn_features
+dbt test --select churn_population_labels churn_features
+python scripts/run_pipeline_p2.py --mode validate
+```
+
+Estos comandos operan sobre la base de datos configurada.
+No deben ejecutarse sobre producción sin autorización.
+
+Para reconstrucciones desde cero, consultar el script
+`scripts/run_pipeline_p2.py` y preparar previamente una
+base de datos aislada.
+
+### Documentación
+
+- `dbt_red_metropolitana/docs/churn/feature_dictionary.md`
+- `dbt_red_metropolitana/docs/churn/model_evaluation.md`
+- `dbt_red_metropolitana/docs/churn/phase1_completion.md`
+- `dbt_red_metropolitana/outputs/churn/regularization_curve_A.png`

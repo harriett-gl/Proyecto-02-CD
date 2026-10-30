@@ -1,0 +1,10 @@
+source_file,expected_rows,bronze_rows,difference,parquet_files,status
+tm_estaciones.csv,104,104,0,1,PASS
+tu_paradas.csv,328,328,0,1,PASS
+mr_estaciones.csv,22,22,0,1,PASS
+am_estaciones.csv,14,14,0,1,PASS
+transurbano_transacciones.csv,1635788,1635788,0,1,PASS
+metroriel_viajes.jsonl,590844,590844,0,1,PASS
+cdc_padron_usuarios.csv,77636,77636,0,1,PASS
+transmetro_validaciones.csv,713786,713786,0,1,PASS
+aerometro_boardings.csv,387053,387053,0,1,PASS

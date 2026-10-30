@@ -31,3 +31,24 @@ dbt_red_metropolitana/.user.yml
 # Respaldos de bases de datos
 *.backup
 *.dump
+
+# PROYECTO 02 - ENTORNOS Y RESPALDOS LOCALES
+.venv_copia_proyecto01/
+backups/
+datos_proyecto2/
+
+# COPIAS TEMPORALES DE CODIGO
+*.bak
+*.bak_*
+*.bak_fase1
+*.bak_antes_*
+
+# MODELOS BINARIOS Y RESPALDOS DE ENTRENAMIENTO
+*.joblib
+dbt_red_metropolitana/outputs/churn/backup/
+
+# ARCHIVOS TEMPORALES DE AUDITORIA
+dbt_red_metropolitana/outputs/churn/auditoria_fase01_*.txt
+
+# RESPALDOS COMPRIMIDOS
+*.tar.gz

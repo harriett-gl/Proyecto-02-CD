@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: staging
-    database: red_metropolitana
+    database: "{{ env_var('POSTGRES_DB', 'red_metropolitana_p2') }}"
     schema: staging
 
     tables:

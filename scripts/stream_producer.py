@@ -28,7 +28,7 @@ FUENTES = {
 
 def crear_productor():
     return KafkaProducer(
-        bootstrap_servers="localhost:9092",
+        bootstrap_servers="localhost:9094",
         value_serializer=lambda valor: json.dumps(
             valor,
             ensure_ascii=False

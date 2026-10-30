@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -10,7 +11,9 @@ import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SOURCE_FILE = BASE_DIR / "datos_red" / "cdc_padron_usuarios.csv"
-BRONZE_DIR = BASE_DIR / "lake" / "bronze"
+BRONZE_DIR = Path(
+    os.environ.get("BRONZE_DIR", str(BASE_DIR / "lake" / "bronze"))
+).resolve()
 CONTROL_DIR = BRONZE_DIR / "_control"
 MANIFEST_FILE = CONTROL_DIR / "cdc_manifest.json"
 
@@ -52,10 +55,18 @@ def ejecutar_ingesta_cdc():
     carga_anterior = manifiesto.get(SOURCE_FILE.name)
 
     if carga_anterior:
-        salida_anterior = BASE_DIR / carga_anterior["archivo_salida"]
+        salida_anterior = (
+                Path(carga_anterior["archivo_salida"])
+                if Path(carga_anterior["archivo_salida"]).is_absolute()
+                else BASE_DIR / carga_anterior["archivo_salida"]
+            )
 
         if carga_anterior:
-            salida_anterior = BASE_DIR / carga_anterior["archivo_salida"]
+            salida_anterior = (
+                Path(carga_anterior["archivo_salida"])
+                if Path(carga_anterior["archivo_salida"]).is_absolute()
+                else BASE_DIR / carga_anterior["archivo_salida"]
+            )
 
             if _output_matches(
                     carga_anterior,
@@ -108,7 +119,7 @@ def ejecutar_ingesta_cdc():
         "fecha_ingesta": ingestion_ts,
         "duracion_segundos": duracion,
         "archivo_salida": str(
-            archivo_salida.relative_to(BASE_DIR)
+            archivo_salida.resolve()
         )
     }
 

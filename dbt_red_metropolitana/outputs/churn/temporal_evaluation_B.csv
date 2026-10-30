@@ -1,0 +1,4 @@
+model,pr_auc,roc_auc
+Logística L2 entrenada en A,0.38722411391981865,0.8370863256014788
+Baseline constante,0.11428424587130816,0.5
+Baseline frecuencia,0.25317494078945685,0.751936887045741

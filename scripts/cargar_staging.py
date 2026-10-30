@@ -9,7 +9,9 @@ from dotenv import load_dotenv
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-BRONZE_DIR = BASE_DIR / "lake" / "bronze"
+BRONZE_DIR = Path(
+    os.environ.get("BRONZE_DIR", str(BASE_DIR / "lake" / "bronze"))
+).resolve()
 
 FUENTES = {
     "tm_estaciones": (
