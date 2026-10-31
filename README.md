@@ -1,695 +1,215 @@
+# 🚇 Proyecto 02 — Red Metropolitana
+## Predicción de abandono de usuarios del transporte público
 
-# 🚇 Proyecto 01 — Red Metropolitana de Transporte
+**Universidad:** Rafael Landívar
+**Curso:** Ciencia de Datos
+**Proyecto:** ¿Quién deja de usar la red?
+**Fases:** Fase 01 — Modelado inicial | Fase 02 — Modelado avanzado y producción
 
-**Universidad Rafael Landívar**  
-**Curso:** Ciencia de Datos  
-**Proyecto:** Red Metropolitana de Transporte  
-**Fases desarrolladas:** Fase 01 y Fase 02
+### 👩‍💻 Integrantes
+- Harriett Guzmán
+- Susana García
+- Rochelle Esquivel
 
 ---
 
-## 📌 Descripción general
+## 📌 1. Descripción general
 
-El proyecto **Red Metropolitana de Transporte** tiene como finalidad integrar, transformar, validar, analizar y visualizar información de movilidad correspondiente a cuatro operadores de transporte:
+El Proyecto 02 tiene como objetivo identificar a los usuarios de la Red Metropolitana que presentan mayor probabilidad de dejar de utilizar el transporte público.
+
+Para ello, se integran datos de cuatro operadores:
 
 - Transmetro
 - Transurbano
 - MetroRiel
-- Aerometro
+- Aerómetro
 
-La solución utiliza una arquitectura de ingeniería de datos basada en capas, con el propósito de garantizar la calidad, trazabilidad y disponibilidad de la información para su posterior análisis.
+El proyecto utiliza técnicas de ingeniería de datos, aprendizaje automático y evaluación temporal para desarrollar modelos predictivos de abandono (*churn*).
 
-El proyecto se desarrolla en dos fases:
+Se reutiliza la infraestructura de ingesta y transformación del Proyecto 01, incorporando nuevos modelos analíticos y predictivos específicos para el Proyecto 02.
 
-- **Fase 01:** construcción de la arquitectura de datos, ingesta, transformación y modelo dimensional.
-- **Fase 02:** implementación de features analíticas, análisis de demanda, cobertura territorial, validaciones y visualización de resultados.
+## 🎯 2. Objetivos
+
+**Objetivo general**
+
+Desarrollar un sistema predictivo que permita identificar usuarios con riesgo de abandono y apoyar estrategias de retención y reactivación.
+
+**Objetivos específicos**
+
+- Integrar y validar información de movilidad de diferentes operadores.
+- Definir una población elegible y una etiqueta de abandono.
+- Construir características predictivas sin fuga temporal.
+- Comparar modelos baseline con modelos de clasificación.
+- Evaluar el rendimiento mediante validación cruzada y cortes temporales.
+- Analizar el costo y beneficio de contactar usuarios.
+- Identificar segmentos de movilidad.
+- Preparar un pipeline reproducible para predicciones.
 
 ---
 
-## 🛠️ Tecnologías utilizadas
+## 🏗️ 3. Arquitectura del proyecto
+
+El procesamiento utiliza las siguientes capas:
+
+```text
+FUENTES ORIGINALES
+        |
+        v
+INGESTA BATCH / STREAMING / CDC
+        |
+        v
+BRONZE
+        |
+        v
+STAGING
+        |
+        v
+SILVER
+        |
+        v
+CHURN_VALID_TRIPS
+        |
+        +----> CHURN_POPULATION_LABELS
+        |
+        +----> CHURN_FEATURES
+                      |
+                      v
+               MODELOS DE ML
+                      |
+             +--------+--------+
+             |                 |
+             v                 v
+       REGRESIÓN           RANDOM
+       LOGÍSTICA           FOREST
+             |                 |
+             +--------+--------+
+                      |
+                      v
+               EVALUACIÓN
+                      |
+                      v
+              PREDICCIONES
+```
+
+Las características del modelo se construyen a partir de Silver, sin depender de las tablas de hechos de Gold.
+
+---
+
+## 🛠️ 4. Tecnologías utilizadas
 
 | Tecnología | Función |
 |---|---|
-| Python 3.12 | Ingesta, procesamiento y análisis de datos |
-| PostgreSQL | Almacenamiento de información |
-| Docker | Contenedores y servicios |
-| Apache Kafka | Procesamiento de eventos de streaming |
-| dbt Core | Transformación y validación de datos |
-| Prefect | Orquestación del pipeline |
-| PyArrow | Procesamiento de archivos Parquet |
-| Pandas | Manipulación y análisis de datos |
-| Psycopg | Conexión con PostgreSQL |
-| Tableau Desktop | Visualización de información |
+| Python | Ingesta, procesamiento y modelado |
+| PostgreSQL | Almacenamiento de datos |
+| Docker | Contenedores |
+| Apache Kafka | Procesamiento de eventos |
+| dbt Core | Transformaciones y pruebas |
+| Pandas | Manipulación de datos |
+| Scikit-learn | Modelos de aprendizaje automático |
+| PyArrow | Archivos Parquet |
+| Joblib | Serialización de modelos |
 | Git y GitHub | Control de versiones |
 
 ---
 
-# 🏗️ Arquitectura del proyecto
+# 🟣 FASE 01 — Preparación de datos y modelado inicial
 
-El procesamiento de datos sigue la siguiente arquitectura:
+## 5. Integración y validación de datos
 
-```text
-FUENTES DE DATOS
-       |
-       v
-INGESTA DE DATOS
-(Batch / Streaming / CDC)
-       |
-       v
-BRONZE
-(Archivos Parquet)
-       |
-       v
-STAGING
-(PostgreSQL)
-       |
-       v
-SILVER
-(Limpieza y normalización)
-       |
-       +------> QUARANTINE
-       |        (Registros inválidos)
-       v
-GOLD
-(Modelo dimensional)
-       |
-       +------> FEATURES
-       |        (Análisis de movilidad)
-       |
-       v
-REPORTES ANALÍTICOS
-(Demanda y cobertura)
-       |
-       v
-TABLEAU
-(Dashboards)
-```
+Se integraron nueve fuentes correspondientes a los operadores de transporte y sus catálogos.
 
-La solución también incorpora un esquema de auditoría y mecanismos de orquestación mediante Prefect.
+**Resultados de reconciliación:**
 
----
-
-# 📁 Estructura del proyecto
-
-```text
-Proyecto01-Fase01/
-│
-├── datos_red/
-│   └── Fuentes originales del proyecto
-│
-├── lake/
-│   └── bronze/
-│       ├── batch/
-│       ├── cdc/
-│       └── streaming/
-│
-├── scripts/
-│   ├── cargar_staging.py
-│   ├── ingesta_batch.py
-│   ├── ingesta_cdc.py
-│   ├── stream_consumer.py
-│   ├── stream_producer.py
-│   ├── generar_diccionario.py
-│   └── medir_consultas_tablero.py
-│
-├── orchestration/
-│   └── flow_red_metropolitana.py
-│
-├── dbt_red_metropolitana/
-│   ├── macros/
-│   │   └── definiciones_oficiales.sql
-│   │
-│   ├── models/
-│   │   ├── staging/
-│   │   ├── silver/
-│   │   ├── quarantine/
-│   │   ├── gold/
-│   │   │   ├── rpt_demanda_red.sql
-│   │   │   ├── rpt_cobertura_zona.sql
-│   │   │   └── reportes.yml
-│   │   │
-│   │   ├── features/
-│   │   │   ├── features_usuario_movilidad.sql
-│   │   │   └── features.yml
-│   │   │
-│   │   └── exposures.yml
-│   │
-│   ├── tests/
-│   ├── dbt_project.yml
-│   └── profiles.yml
-│
-├── docs/
-│   ├── evidencias/
-│   │   ├── Proyecto 01 - Fase 01.pdf
-│   │   ├── Proyecto 01 - Fase 02.pdf
-│   │   └── Proyecto 01 - Fase 02.twb
-│   │
-│   ├── diccionario_datos.md
-│   ├── features.md
-│   ├── gobernanza.md
-│   ├── metricas_fase1.md
-│   ├── metricas_fase2.md
-│   ├── recomendacion.md
-│   ├── seguridad.md
-│   ├── tablero.md
-│   └── últimas pruebas.sql
-│
-├── docker-compose.yml
-├── generar_red_metropolitana.py
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── README.md
-```
-
-**Nota:** algunos directorios contienen archivos generados durante la ejecución y pueden estar excluidos del repositorio mediante `.gitignore`.
-
----
-
-# 🟣 FASE 01 — Ingeniería y arquitectura de datos
-
-## 🎯 Objetivo
-
-Construir una plataforma de ingeniería de datos capaz de integrar información de distintos operadores de transporte mediante procesos de ingesta, almacenamiento, transformación y validación.
-
-## 1. Ingesta de datos
-
-Se implementaron tres mecanismos de ingesta.
-
-### Ingesta Batch
-
-Procesamiento de archivos históricos y catálogos de transporte.
-
-### Ingesta Streaming
-
-Procesamiento de eventos mediante Apache Kafka, principalmente para Transmetro y Aerometro.
-
-### Ingesta CDC
-
-Procesamiento de modificaciones del padrón de usuarios.
-
-Los datos originales se almacenan en formato Parquet dentro de la capa Bronze.
-
-## 2. Capa Bronze
-
-Conserva los datos originales antes de su transformación.
-
-Permite:
-
-- Mantener los registros originales.
-- Conservar información de procedencia.
-- Facilitar el reprocesamiento.
-- Organizar archivos por fuente y tipo de ingesta.
-
-## 3. Capa Staging
-
-Carga los datos provenientes de Bronze hacia PostgreSQL para facilitar las transformaciones posteriores.
-
-## 4. Capa Silver
-
-Implementa procesos de:
-
-- Limpieza de información.
-- Normalización de campos.
-- Validación de fechas.
-- Estandarización de zonas.
-- Procesamiento de usuarios.
-- Aplicación de reglas de calidad.
-
-## 5. Capa Quarantine
-
-Almacena registros que no cumplen las reglas de calidad establecidas.
-
-Esto permite separar información inválida sin eliminarla definitivamente.
-
-## 6. Capa Gold
-
-Se implementó un modelo dimensional para facilitar las consultas analíticas.
-
-### Dimensiones
-
-| Dimensión | Descripción |
-|---|---|
-| `dim_fecha` | Información temporal |
-| `dim_hora` | Distribución por hora |
-| `dim_modo` | Modos de transporte |
-| `dim_usuario` | Usuarios de la red |
-| `dim_zona` | Zonas geográficas |
-
-### Tablas de hechos
-
-| Tabla | Descripción |
-|---|---|
-| `fct_abordajes` | Eventos de abordaje |
-| `fct_viajes_metroriel` | Viajes registrados en MetroRiel |
-
-## 7. Orquestación
-
-Se utiliza Prefect para coordinar las etapas del pipeline y facilitar su ejecución.
-
-## 8. Resultados de Fase 01
-
-| Indicador | Resultado |
+| Fuente | Registros |
 |---|---:|
-| Registros en Staging | 1,730,184 |
-| Registros en Silver | 1,919,887 |
-| Registros en Gold | 1,718,037 |
-| Registros en cuarentena | 18,431 |
-| Viajes válidos de MetroRiel | 295,511 |
-
-### Idempotencia
-
-Se verificó que dos ejecuciones consecutivas del pipeline produjeran los mismos totales por capa, sin duplicar registros.
-
----
-
-# 🔵 FASE 02 — Análisis y visualización de datos
-
-## 🎯 Objetivo
-
-Ampliar la arquitectura de la Fase 01 mediante modelos analíticos que permitan estudiar la movilidad de los usuarios, identificar patrones multimodales y evaluar la demanda y cobertura territorial.
-
-## 1. Features de movilidad
-
-Se implementó el modelo:
-
-`features.features_usuario_movilidad`
-
-Este modelo permite obtener características analíticas relacionadas con el comportamiento de los usuarios.
-
-Entre las variables consideradas se encuentran:
-
-- Cantidad de modos de transporte identificados.
-- Identificación de usuarios multimodales.
-- Actividad registrada.
-- Zonas de movilidad.
-- Patrones asociados con el uso del transporte.
-
-### Resultados
-
-Se procesaron **70,380 usuarios** en el modelo de features.
-
-| Modos identificados | Usuarios |
-|---|---:|
-| 1 modo | 33,551 |
-| 2 modos | 26,833 |
-| 3 modos | 9,996 |
-| **Total** | **70,380** |
-
-Se considera usuario multimodal a quien utiliza o está identificado en dos o más modos de transporte.
-
-**Usuarios multimodales identificados: 36,829.**
-
----
-
-## 2. Modelo de demanda
-
-Se implementó:
-
-`gold.rpt_demanda_red`
-
-Este modelo permite analizar los abordajes registrados por modo de transporte.
-
-### Resultados de demanda
-
-| Modo de transporte | Abordajes |
-|---|---:|
-| Transurbano | 786,398 |
-| Transmetro | 362,106 |
-| MetroRiel | 295,511 |
-| Aerometro | 203,554 |
-
-Estos resultados facilitan la comparación de la demanda entre operadores.
-
----
-
-## 3. Modelo de cobertura territorial
-
-Se implementó:
-
-`gold.rpt_cobertura_zona`
-
-Este modelo permite analizar la demanda por zona y su relación con la cobertura de transporte.
-
-El análisis permite:
-
-- Identificar zonas con mayor demanda.
-- Comparar zonas con y sin cobertura de MetroRiel.
-- Detectar oportunidades de mejora.
-- Apoyar decisiones de planificación territorial.
-
-### Caso MetroRiel
-
-Se analizaron zonas objetivo relacionadas con el servicio de MetroRiel.
-
-| Zona | Demanda total |
-|---|---:|
-| Zona 17 | 94,799 |
-| Zona 12 | 93,933 |
-| Zona 1 | 83,367 |
-| Zona 8 | 80,157 |
-| Zona 6 | 71,840 |
-
----
-
-## 4. Validaciones de calidad
-
-Se incorporaron pruebas adicionales de dbt para verificar:
-
-- Consistencia de las features.
-- Ausencia de dependencias incorrectas entre capas.
-- Prevención de fuga de información.
-- Conciliación entre Silver y Gold.
-- Consistencia de los registros en cuarentena.
-- Detección de zonas sin servicio.
-
-### Pruebas incorporadas
-
-```text
-tests/
-├── cobertura_sin_servicio_detectada.sql
-├── conciliacion_silver_gold.sql
-├── cuarentena_cuadra_con_staging.sql
-├── features_consistencia.sql
-├── features_no_lee_gold.sql
-├── features_sin_fuga_de_informacion.sql
-└── gold_no_lee_bronze_ni_staging.sql
-```
-
-### Validaciones ejecutadas
-
-Los cuatro modelos actualizados se construyeron correctamente:
-
-```text
-dim_usuario_conformado
-features_usuario_movilidad
-rpt_cobertura_zona
-rpt_demanda_red
-```
-
-También se ejecutaron pruebas seleccionadas de Fase 02.
-
-```text
-PASS=32
-WARN=0
-ERROR=0
-```
-
-Las 32 pruebas seleccionadas finalizaron correctamente.
-
----
-
-## 5. Visualización en Tableau
-
-Se desarrolló un libro de Tableau para presentar los resultados de la Red Metropolitana.
-
-### Dashboard: Red Metropolitana
-
-Incluye visualizaciones de:
-
-- Abordajes por modo.
-- Demanda por zona.
-- Demanda por hora.
-- Usuarios multimodales.
-- Viajes por estación de MetroRiel.
-- Cobertura por zona.
-
-### Dashboard: Cobertura y Caso MetroRiel
-
-Permite analizar:
-
-- Cobertura territorial.
-- Demanda por zona.
-- Relación entre demanda y disponibilidad de transporte.
-- Zonas de interés para la planificación de MetroRiel.
-
-### Archivo principal
-
-`docs/evidencias/Proyecto 01 - Fase 02.twb`
-
----
-
-## 6. Documentación técnica
-
-Se incorporaron documentos específicos para respaldar los resultados de Fase 02.
-
-| Documento | Contenido |
-|---|---|
-| `diccionario_datos.md` | Definición de campos y estructuras |
-| `features.md` | Características analíticas |
-| `gobernanza.md` | Reglas y responsabilidades de datos |
-| `metricas_fase2.md` | Indicadores de Fase 02 |
-| `recomendacion.md` | Recomendaciones basadas en resultados |
-| `seguridad.md` | Controles de seguridad |
-| `tablero.md` | Documentación de Tableau |
-
----
-
-# ⚙️ Configuración y ejecución
-
-## 1. Crear el entorno virtual
-
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-```
-
-## 2. Instalar dependencias
-
-```bash
-pip install -r requirements.txt
-```
-
-## 3. Configurar variables de entorno
-
-```bash
-cp .env.example .env
-```
-
-Editar `.env` con las credenciales correspondientes.
-
-**Importante:** no subir `.env` a GitHub.
-
-### Variables de entorno
-
-| Variable | Descripción |
-|---|---|
-| `POSTGRES_HOST` | Dirección del servidor PostgreSQL. |
-| `POSTGRES_PORT` | Puerto de PostgreSQL, normalmente `5432`. |
-| `POSTGRES_DB` | Nombre de la base de datos. |
-| `POSTGRES_USER` | Usuario de conexión a PostgreSQL. |
-| `POSTGRES_PASSWORD` | Contraseña de conexión a PostgreSQL. |
-| `USUARIO_SALT` | Clave secreta obligatoria utilizada para generar identificadores mediante HMAC-SHA256. |
-
-Para generar una clave privada:
-
-```bash
-python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-Agregar la clave generada al archivo `.env` y mantenerla fuera del repositorio.
-
-El modelo `silver.dim_usuario_conformado` rechaza la ejecución si `USUARIO_SALT` está ausente o vacía.
-
-Cambiar esta clave modifica los identificadores seudonimizados y requiere reconstruir los modelos dependientes.
-
-## Generación de datos de prueba
-
-El proyecto incluye el script `generar_red_metropolitana.py`, que permite generar los datos utilizados en la simulación de la Red Metropolitana de Transporte.
-
-Desde la carpeta raíz del proyecto, ejecutar:
-
-```bash
-python generar_red_metropolitana.py
-```
-
-Los datos generados sirven como entrada para los procesos de ingesta Batch, Streaming y CDC, según la estructura implementada en el proyecto.
-
-**Importante:** este procedimiento debe ejecutarse antes de realizar la ingesta inicial cuando todavía no se dispone de los datos de origen.
-
-La generación de datos no sustituye los procesos de ingesta, transformación y validación del pipeline.
-
-## 4. Levantar los servicios
-
-```bash
-docker compose up -d
-docker compose ps
-```
-
-## 5. Verificar la conexión de dbt
-
-```bash
-dbt debug \
-  --project-dir dbt_red_metropolitana \
-  --profiles-dir dbt_red_metropolitana
-```
-
-## 6. Ejecutar las transformaciones
-
-```bash
-dbt build \
-  --project-dir dbt_red_metropolitana \
-  --profiles-dir dbt_red_metropolitana
-```
-
-**Nota:** este comando ejecuta transformaciones y pruebas sobre la base de datos configurada. Debe utilizarse únicamente cuando el entorno esté preparado.
-
-## 7. Ejecutar las pruebas de Fase 02
-
-```bash
-dbt test \
-  --project-dir dbt_red_metropolitana \
-  --profiles-dir dbt_red_metropolitana \
-  --select features_usuario_movilidad rpt_cobertura_zona rpt_demanda_red
-```
-
-## 8. Ejecutar la orquestación
-
-```bash
-python orchestration/flow_red_metropolitana.py
-```
-
-La ejecución completa del flujo puede realizar ingestas y modificar datos en PostgreSQL.
-
----
-
-# 🔐 Seguridad
-
-El proyecto incorpora las siguientes prácticas:
-
-- Administración de credenciales mediante variables de entorno.
-- Exclusión de `.env` del repositorio.
-- Uso de llaves sustitutas en dimensiones.
-- Separación de capas y responsabilidades.
-- Validaciones automatizadas de calidad.
-- Documentación de controles y reglas de gobernanza.
-
----
-
-# 📊 Resultados generales
-
-| Componente | Fase 01 | Fase 02 |
-|---|---|---|
-| Ingesta Batch | Implementado | Reutilizado |
-| Streaming con Kafka | Implementado | Reutilizado |
-| CDC | Implementado | Reutilizado |
-| Bronze | Implementado | Reutilizado |
-| Staging | Implementado | Reutilizado |
-| Silver | Implementado | Ampliado |
-| Gold | Modelo dimensional | Reportes analíticos |
-| Features | — | Implementado |
-| Pruebas dbt | Implementadas | Ampliadas |
-| Prefect | Implementado | Flujo actualizado |
-| Tableau | — | Dashboards desarrollados |
-| Documentación | Fase 01 | Fase 02 |
-
----
-
-# 📚 Evidencias
-
-Los principales entregables se encuentran en:
-
-```text
-docs/evidencias/
-├── Proyecto 01 - Fase 01.pdf
-├── Proyecto 01 - Fase 02.pdf
-└── Proyecto 01 - Fase 02.twb
-```
-
-La documentación técnica adicional se encuentra en la carpeta `docs/`.
-
----
-
-# 👩‍💻 Integrantes
-
-Proyecto académico desarrollado por:
-
-- 💜 Rochelle Esquivel
-- 🩷 Susana García
-- 💙 Harriett Guzmán
-
-**Universidad Rafael Landívar — Ciencia de Datos**
-
----
-
-# 🚇 Proyecto 02 — Predicción de abandono
-## Fase 01 — Preparación de datos y modelado
-
-### Objetivo
-
-Desarrollar un modelo predictivo de abandono de usuarios
-de la Red Metropolitana de Transporte, utilizando datos
-históricos de movilidad y técnicas de aprendizaje supervisado.
-
-### Arquitectura
-
-El Proyecto 02 reutiliza la infraestructura de ingesta
-y transformación del Proyecto 01.
-
-Para la predicción de abandono se utilizan directamente
-las fuentes de la capa Silver, sin depender de las tablas
-de hechos de Gold.
-
-Flujo de procesamiento:
-
-```text
-Fuentes originales
-       |
-       v
-Bronze
-       |
-       v
-Staging
-       |
-       v
-Silver
-       |
-       v
-churn_valid_trips
-       |
-       +------> churn_population_labels
-       |
-       +------> churn_features
-                       |
-                       v
-              Modelos predictivos
-```
-
-### Definición de abandono
-
-La unidad de análisis es el usuario conformado `usuario_sk`.
-
-Se consideran elegibles los usuarios con al menos dos viajes
-válidos en los 28 días anteriores a la fecha de corte.
-
-Se considera abandono cuando no se registran viajes durante
-los 30 días posteriores al corte.
+| Estaciones Transmetro | 104 |
+| Paradas Transurbano | 328 |
+| Estaciones MetroRiel | 22 |
+| Estaciones Aerómetro | 14 |
+| Transacciones Transurbano | 1,635,788 |
+| Viajes MetroRiel | 590,844 |
+| Padrón CDC | 77,636 |
+| Validaciones Transmetro | 713,786 |
+| Abordajes Aerómetro | 387,053 |
+| **Total** | **3,405,575** |
+
+La reconciliación entre las fuentes y los registros cargados no presentó diferencias.
+
+## 6. Unidad de análisis y definición de churn
+
+La unidad de análisis seleccionada es el usuario conformado, identificado mediante `usuario_sk`.
+
+**Reglas utilizadas:**
+
+- Elegibilidad: al menos dos viajes válidos en los 28 días anteriores al corte.
+- Churn = 1: el usuario no registra viajes durante los 30 días posteriores.
+- Churn = 0: el usuario registra al menos un viaje durante ese período.
+- El corte C se utiliza para predicción sin etiqueta conocida.
 
 ### Cortes temporales
 
-| Corte | Fecha | Usuarios | Abandono |
+| Corte | Fecha | Usuarios | Churn |
 |---|---|---:|---:|
 | A | 2026-07-01 | 59,796 | 7,396 (12.37%) |
 | B | 2026-07-31 | 58,372 | 6,671 (11.43%) |
 | C | 2026-08-30 | 57,925 | Sin etiqueta |
 
-### Características predictivas
+## 7. Limitaciones de identidad
 
-Se construyeron 14 características de movilidad, entre ellas:
+Se identificaron 145,561 registros de identidad y 93,009 usuarios conformados distintos.
 
-- Viajes realizados en los últimos 28 y 7 días.
-- Días de actividad.
-- Días desde el último viaje.
-- Cantidad de modos utilizados.
-- Viajes por operador.
-- Proporción de viajes en fin de semana.
-- Proporción de viajes en horario pico.
-- Gasto total y promedio.
+Además, 42,854 usuarios fueron identificados en varios modos de transporte.
 
-### Evaluación de modelos
+Los identificadores conformados no garantizan una correspondencia exacta con personas físicas.
 
-Se utilizó el corte A con validación cruzada estratificada
-de cinco particiones y semilla aleatoria 42.
+En el corte A se reportaron 1,468 casos positivos asociados a usuarios aislados de Aerómetro, respecto de 7,396 casos positivos totales.
+
+La proporción es:
+
+**1,468 / 7,396 × 100 = 19.85%**
+
+Esta cifra evidencia una limitación en la vinculación de identidades y debe interpretarse considerando las reglas de conformación de usuarios.
+
+## 8. Ingeniería de características
+
+Se construyeron 14 variables predictivas:
+
+| Característica | Descripción |
+|---|---|
+| `trips_28d` | Viajes de los últimos 28 días |
+| `trips_7d` | Viajes de los últimos 7 días |
+| `active_days_28d` | Días con actividad |
+| `days_since_last_trip` | Días desde el último viaje |
+| `transport_modes_count` | Cantidad de modos utilizados |
+| `is_multimodal` | Indicador multimodal |
+| `transmetro_trips` | Viajes en Transmetro |
+| `transurbano_trips` | Viajes en Transurbano |
+| `metroriel_trips` | Viajes en MetroRiel |
+| `aerometro_trips` | Viajes en Aerómetro |
+| `weekend_trip_ratio` | Proporción de viajes de fin de semana |
+| `peak_hour_trip_ratio` | Proporción de viajes en horario pico |
+| `total_spending_gtq` | Gasto total en quetzales |
+| `average_spending_gtq` | Gasto promedio en quetzales |
+
+Las características se calculan utilizando únicamente información disponible antes de cada fecha de corte.
+
+## 9. Prevención de fuga temporal
+
+Se implementaron auditorías para comprobar que los modelos no utilizaran información futura.
+
+La comparación entre datos originales y datos temporalmente recortados produjo:
+
+- Corte A: 0 diferencias.
+- Corte B: 0 diferencias.
+- Corte C: 0 diferencias.
+
+**Resultado: PASS.**
+
+## 10. Entrenamiento y comparación de modelos
+
+El entrenamiento inicial se realizó exclusivamente con el corte A.
+
+Se utilizó validación cruzada estratificada de cinco particiones y semilla aleatoria 42.
 
 | Modelo | PR-AUC promedio | Desviación estándar |
 |---|---:|---:|
@@ -698,65 +218,124 @@ de cinco particiones y semilla aleatoria 42.
 | Regresión logística L1 | 0.428200 | 0.014151 |
 | Regresión logística L2 | 0.429148 | 0.014108 |
 
-Modelo seleccionado: regresión logística L2, C = 0.001.
+**Modelo seleccionado: regresión logística L2, con C = 0.001.**
 
-El corte B se reserva para evaluación temporal posterior.
+La regresión logística L2 presentó el mejor PR-AUC promedio de los modelos iniciales.
 
-### Validación técnica
+## 11. Evaluación temporal
 
-La migración de Gold a Silver fue verificada contra
-los resultados originales:
+El corte B se utilizó para evaluar temporalmente el modelo entrenado con A.
 
-- Población total: 176,093 registros.
-- Diferencias de población y etiquetas: 0.
-- Diferencias de características: 0.
-- Pruebas dbt de churn: 13 PASS.
+No se utilizó B para entrenar el modelo inicial ni para seleccionar sus hiperparámetros.
 
-### Limitaciones de identidad
+El corte C se mantuvo sin etiqueta y se reservó para generar predicciones.
 
-Se identificaron 145,561 registros de identidad,
-93,009 usuarios conformados distintos y 42,854 usuarios
-identificados en varios modos.
+## 12. Resultados de la Fase 01
 
-Los identificadores conformados no garantizan una
-correspondencia exacta con personas físicas.
+- 9 fuentes reconciliadas.
+- 3,405,575 registros integrados.
+- 14 características predictivas.
+- 59,796 usuarios elegibles en A.
+- 7,396 usuarios con churn en A.
+- Regresión logística L2 seleccionada.
+- PR-AUC promedio de 0.429148.
+- Auditorías temporales aprobadas.
+- 13 pruebas dbt de churn aprobadas.
 
-### Ejecución y validación
+---
 
-Desde la carpeta `dbt_red_metropolitana`, con PostgreSQL
-y las variables de entorno correctamente configuradas:
+# 🔵 FASE 02 — Modelado avanzado y producción
 
-```bash
-dbt run --select churn_valid_trips churn_population_labels churn_features
-dbt test --select churn_population_labels churn_features
-python scripts/run_pipeline_p2.py --mode validate
-```
+## 13. Modelos Ensemble
 
-Estos comandos operan sobre la base de datos configurada.
-No deben ejecutarse sobre producción sin autorización.
+Se incorporó Random Forest para comparar su comportamiento con la regresión logística.
 
-Para reconstrucciones desde cero, consultar el script
-`scripts/run_pipeline_p2.py` y preparar previamente una
-base de datos aislada.
+El modelo se evaluó utilizando los mismos cinco folds de validación.
 
-### Documentación
+**Resultados:**
 
-- `dbt_red_metropolitana/docs/churn/feature_dictionary.md`
-- `dbt_red_metropolitana/docs/churn/model_evaluation.md`
-- `dbt_red_metropolitana/docs/churn/phase1_completion.md`
-- `dbt_red_metropolitana/outputs/churn/regularization_curve_A.png`
+| Métrica | Resultado |
+|---|---:|
+| PR-AUC entrenamiento | 0.5001 |
+| PR-AUC validación | 0.4352 |
+| Brecha entrenamiento-validación | 0.0649 |
 
+Se utilizó importancia por permutación en validación para interpretar la contribución de las características.
 
-### Requisitos para ejecutar el Proyecto 02
+La variable más importante fue `days_since_last_trip`.
 
-- Python 3.12
-- Docker Desktop
-- PostgreSQL
-- Apache Kafka
-- dbt-core y dbt-postgres
-- Bibliotecas de Python indicadas en `requirements.txt`
+## 14. Optimización del umbral
 
-### Instalación
+Se utilizó un criterio económico para decidir qué usuarios contactar.
+
+**Parámetros:**
+
+- Costo por contacto: Q5.
+- Beneficio esperado por retención: Q60.
+- Probabilidad de éxito de la intervención: 25%.
+
+Umbral económico teórico:
+
+**5 / (0.25 × 60) = 0.333333**
+
+La evaluación reportó:
+
+- Ganancia estimada en A: Q12,715.
+- PR-AUC temporal en B: 0.3995.
+- Ganancia estimada en B: Q9,305.
+
+El corte B se utilizó para evaluación temporal, no para modificar el umbral después de observar sus resultados.
+
+## 15. Segmentación de usuarios
+
+Se aplicaron técnicas de KMeans y PCA para identificar grupos de comportamiento.
+
+Se seleccionaron dos segmentos.
+
+| Segmento | Proporción | Churn observado | Acción |
+|---|---:|---:|---|
+| 0 | 81.9% | 14.7% | Reactivación |
+| 1 | 18.1% | 1.9% | Fidelización |
+
+El PCA bidimensional explicó aproximadamente el 47.54% de la varianza.
+
+## 16. Pipeline predictivo
+
+Se preparó un pipeline que incorpora tratamiento de valores faltantes y clasificación.
+
+El modelo serializado se encuentra en:
+
+`dbt_red_metropolitana/outputs/churn/models/churn_pipeline_v1.joblib`
+
+El proceso de predicción está diseñado para recibir una fecha de corte, calcular puntajes y determinar qué usuarios contactar.
+
+**Estado:** la interfaz de ejecución y la exportación oficial del corte C están pendientes de las correcciones identificadas en la auditoría técnica.
+
+## 17. Auditoría de invariancia temporal
+
+Se comprobó que la incorporación de eventos posteriores al corte C no alterara las predicciones correspondientes a ese corte.
+
+Resultados reportados:
+
+- Predicciones comparadas: 57,925.
+- Diferencias de clasificación: 0.
+- Diferencia máxima de probabilidad: aproximadamente 3.33 × 10⁻¹⁶.
+
+**Resultado: PASS.**
+
+---
+
+# ⚙️ 18. Instalación y ejecución
+
+## Requisitos
+
+- Python y dependencias del proyecto.
+- Docker Desktop.
+- PostgreSQL.
+- Apache Kafka.
+- dbt Core y dbt-postgres.
+
+## Preparación
 
 Desde la raíz del repositorio:
 
@@ -766,22 +345,24 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Configurar el archivo `.env` a partir de `.env.example`, utilizando las credenciales de PostgreSQL y una clave `USUARIO_SALT` segura.
+Configurar las variables de entorno:
 
-No subir el archivo `.env` al repositorio.
+```bash
+cp .env.example .env
+```
 
-### Iniciar los servicios
+Editar `.env` con las credenciales de PostgreSQL y una clave `USUARIO_SALT` segura.
 
-Desde la raíz del proyecto:
+No subir `.env` a GitHub.
+
+## Levantar los servicios
 
 ```bash
 docker compose up -d
 docker compose ps
 ```
 
-Verificar que PostgreSQL y Kafka estén funcionando.
-
-### Validar los datos de entrada
+## Validar los datos
 
 Desde `dbt_red_metropolitana`:
 
@@ -789,51 +370,77 @@ Desde `dbt_red_metropolitana`:
 python scripts/run_pipeline_p2.py --mode validate
 ```
 
-Esta operación valida los archivos originales y los registros de Bronze sin reconstruir las tablas.
-
-### Construir los modelos de abandono
+## Ejecutar los modelos de churn
 
 ```bash
 dbt run --select +churn_features --profiles-dir .
 dbt test --select churn_population_labels churn_features --profiles-dir .
 ```
 
-### Auditar la fuga temporal
+Estos comandos pueden modificar tablas en la base de datos configurada.
+
+## Auditoría temporal
 
 ```bash
 python scripts/audit_temporal_leakage.py
 ```
 
-Resultado obtenido para el corte A:
-
-- Usuarios originales: 59,796.
-- Usuarios recalculados: 59,796.
-- Diferencias detectadas: 0.
-- Auditoría: PASS.
-
-### Entrenar el modelo
+## Entrenamiento inicial
 
 ```bash
 python scripts/train_churn.py
 ```
 
-El entrenamiento utiliza únicamente el corte A y validación cruzada estratificada de cinco particiones.
+## Reconstrucción independiente
 
-El modelo seleccionado fue regresión logística L2, con C = 0.001 y PR-AUC promedio de 0.429148.
+El script `run_pipeline_p2.py` incluye el modo `rebuild-dbt`, que permite reconstruir el pipeline utilizando un entorno de pruebas aislado.
 
-### Reconstrucción independiente
+Antes de ejecutarlo, deben comprobarse las variables de conexión y las rutas de los directorios Bronze.
 
-El script `run_pipeline_p2.py` permite ejecutar una reconstrucción con `--mode rebuild-dbt`.
+---
 
-Antes de utilizarlo, debe existir la base de datos `red_metropolitana_p2_rebuild_test` y no debe existir el directorio `lake/bronze_rebuild_test`.
+# 📁 19. Documentación y evidencias
 
-La reconstrucción utiliza esa base de prueba y un directorio Bronze independiente. No debe ejecutarse sin comprobar previamente las variables de conexión.
-
-### Evidencias técnicas
+La documentación de churn se encuentra en:
 
 - `dbt_red_metropolitana/docs/churn/phase1_completion.md`
 - `dbt_red_metropolitana/docs/churn/feature_dictionary.md`
+- `dbt_red_metropolitana/docs/churn/model_evaluation.md`
+- `dbt_red_metropolitana/docs/churn/model_card_phase2.md`
+- `dbt_red_metropolitana/docs/churn/evaluation_log.md`
+
+Entre los artefactos de evaluación se incluyen:
+
 - `dbt_red_metropolitana/outputs/churn/regularization_curve_A.png`
 - `dbt_red_metropolitana/outputs/churn/evidencias/pipeline_timings.csv`
 
-La evaluación temporal del corte B se realizó con el modelo entrenado en A, sin utilizar B para seleccionar hiperparámetros.
+---
+
+# 🔐 20. Seguridad y reproducibilidad
+
+El proyecto contempla:
+
+- Uso de variables de entorno para credenciales.
+- Seudonimización de usuarios mediante HMAC-SHA256.
+- Separación de capas de procesamiento.
+- Validaciones automatizadas con dbt.
+- Auditorías de fuga temporal.
+- Evaluación con cortes temporales.
+- Registro de métricas y evidencias.
+- Reconstrucción en entornos aislados.
+
+---
+
+# 📚 21. Conclusiones
+
+La Fase 01 permitió construir una base de datos validada, definir el problema de abandono y desarrollar modelos iniciales de clasificación.
+
+La regresión logística L2 obtuvo el mejor rendimiento entre los modelos iniciales evaluados.
+
+La Fase 02 amplió el análisis mediante Random Forest, optimización económica del umbral, segmentación de usuarios y preparación de un pipeline predictivo.
+
+El proyecto permite estudiar el riesgo de abandono y apoyar decisiones relacionadas con la retención de usuarios de la Red Metropolitana.
+
+---
+
+**Universidad Rafael Landívar — Ciencia de Datos — Proyecto 02**

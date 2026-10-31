@@ -153,3 +153,28 @@ del modelo ya entrenado con el corte A. Sus resultados no se
 utilizaron para seleccionar hiperparámetros ni modificar el
 modelo final. Por tanto, B no debe presentarse como un conjunto
 que nunca ha sido evaluado.
+
+## Costo de la unidad de análisis
+
+La unidad de análisis seleccionada es la persona, identificada mediante
+`usuario_sk`, lo que permite consolidar los viajes de los diferentes
+operadores de transporte.
+
+Sin embargo, existen limitaciones de vinculación de identidades,
+especialmente para usuarios aislados de Aerómetro.
+
+En el corte A se identificaron:
+
+- Usuarios elegibles: 59,796.
+- Usuarios con churn: 7,396.
+- Casos positivos asociados a usuarios aislados de Aerómetro: 1,468.
+
+La proporción correspondiente es:
+
+1,468 / 7,396 = 0.1985 = 19.85%
+
+Esta proporción describe una limitación de vinculación de identidades
+entre operadores y debe considerarse al interpretar los resultados.
+
+El uso de `usuario_sk` permite analizar el comportamiento de movilidad
+a nivel de persona, aunque la integración entre fuentes no es perfecta.
