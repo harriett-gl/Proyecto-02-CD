@@ -154,3 +154,33 @@ para confirmar el abandono real.
 
 Los resultados no demuestran causalidad entre las
 características y el abandono.
+
+
+### Consideraciones metodológicas adicionales
+
+El corte B ya fue utilizado para evaluar temporalmente el
+modelo entrenado con el corte A. Aunque no se utilizó para
+seleccionar hiperparámetros ni reentrenar el modelo, sus
+resultados ya son conocidos y deben considerarse al
+interpretar futuras evaluaciones.
+
+La identificación de usuarios entre operadores presenta
+limitaciones. El identificador `usuario_sk` representa una
+identidad conformada, no necesariamente una persona física
+verificada. Por tanto, las tasas de abandono y las
+predicciones pueden verse afectadas por identificadores
+no vinculados entre distintos modos de transporte.
+
+La curva de regularización presenta λ = 1/C.
+Para el modelo seleccionado, C = 0.001 equivale
+a λ = 1000.
+
+### Evidencias adicionales
+
+- `outputs/churn/evidencias/pipeline_timings.csv`
+- `docs/churn/phase1_completion.md`
+
+La reconstrucción aislada registró una duración total de
+188.49 segundos, con 33 modelos dbt y 128 pruebas
+satisfactorias. El archivo de tiempos conserva la duración
+individual de cada etapa.

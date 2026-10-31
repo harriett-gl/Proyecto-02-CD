@@ -44,6 +44,13 @@ contrario, es 0.
 | B | 2026-07-31 | 58,372 | 6,671 (11.43%) |
 | C | 2026-08-30 | 57,925 | Sin etiqueta |
 
+La prevalencia de abandono se calcula dividiendo el número
+de usuarios con churn_label = 1 entre el total de usuarios
+elegibles del mismo corte.
+
+En el corte A: 7,396 / 59,796 = 12.37%.
+En el corte B: 6,671 / 58,372 = 11.43%.
+
 #### Costo de identidad y limitaciones
 
 La dimensión Silver contiene 145,561 registros de identidad
@@ -141,5 +148,8 @@ Estas asociaciones no demuestran causalidad.
 La gráfica de regularización se encuentra en
 `outputs/churn/regularization_curve_A.png`.
 
-El corte B no se utilizó para entrenar ni seleccionar
-el modelo de la Fase 01.
+El corte B se utilizó previamente para una evaluación temporal
+del modelo ya entrenado con el corte A. Sus resultados no se
+utilizaron para seleccionar hiperparámetros ni modificar el
+modelo final. Por tanto, B no debe presentarse como un conjunto
+que nunca ha sido evaluado.

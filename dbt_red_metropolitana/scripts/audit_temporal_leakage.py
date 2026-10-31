@@ -1,58 +1,68 @@
 from pathlib import Path
-import re
+import json
+import os
+import subprocess
 import sys
-
 import psycopg2
 from dotenv import load_dotenv
-import os
 
-# Cargar configuración del proyecto
-load_dotenv(Path.cwd().parent / ".env")
-load_dotenv(Path.cwd() / ".env")
+# Configuración del proyecto
+DBT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = DBT_DIR.parent
 
-# Leer el SQL compilado de dbt para reutilizar exactamente
-# las mismas transformaciones de características
-compiled_files = list(
-    Path("target/compiled").rglob("churn_features.sql")
+# Fecha de corte utilizada para la auditoría
+CUTOFF_A = "2026-07-01"
+
+# Cargar variables de entorno
+load_dotenv(ROOT_DIR / ".env")
+
+# Compilar el modelo utilizando únicamente
+# eventos anteriores al corte A
+command = [
+    "dbt",
+    "compile",
+    "--select",
+    "churn_features",
+    "--profiles-dir",
+    str(DBT_DIR),
+    "--project-dir",
+    str(DBT_DIR),
+    "--vars",
+    json.dumps({
+        "churn_audit_cutoff": CUTOFF_A
+    }),
+]
+
+print("Compilando modelo con datos recortados...")
+
+subprocess.run(
+    command,
+    cwd=DBT_DIR,
+    check=True
 )
 
-if not compiled_files:
-    sys.exit("ERROR: No se encontró el SQL compilado de churn_features.")
+# Buscar el SQL compilado por dbt
+compiled = (
+    DBT_DIR
+    / "target"
+    / "compiled"
+    / "dbt_red_metropolitana"
+    / "models"
+    / "churn"
+    / "churn_features.sql"
+)
 
-sql = compiled_files[0].read_text(encoding="utf-8").strip().rstrip(";")
+if not compiled.exists():
+    sys.exit("ERROR: No se encontró el SQL compilado.")
 
-# Restringir ambas fuentes de viajes a datos anteriores al corte A
-replacements = {
-    '"red_metropolitana_p2"."gold"."fct_abordajes"': """
-        (
-            SELECT *
-            FROM gold.fct_abordajes
-            WHERE fecha_hora_local <
-                TIMESTAMP '2026-07-01 00:00:00'
-                AT TIME ZONE 'America/Guatemala'
-        )
-    """,
-    '"red_metropolitana_p2"."gold"."fct_viajes_metroriel"': """
-        (
-            SELECT *
-            FROM gold.fct_viajes_metroriel
-            WHERE fecha_hora_entrada <
-                TIMESTAMP '2026-07-01 00:00:00'
-        )
-    """,
-}
+sql = compiled.read_text(
+    encoding="utf-8"
+).strip().rstrip(";")
 
-for source, replacement in replacements.items():
-    count = sql.count(source)
-    if count != 1:
-        sys.exit(
-            f"ERROR: Se esperaba una referencia a {source}; "
-            f"se encontraron {count}."
-        )
-    sql = sql.replace(source, replacement)
-
-# Comparar el resultado reconstruido contra la tabla original
-audit_sql = f"""
+# Comparar características originales
+# contra características con datos recortados
+# Excluir la etiqueta porque utiliza datos futuros
+audit_query = f"""
 WITH recalculated AS (
     {sql}
 ),
@@ -65,67 +75,56 @@ truncated AS (
     SELECT *
     FROM recalculated
     WHERE cut_name = 'A'
+),
+comparison AS (
+    SELECT
+        o.usuario_sk AS original_id,
+        t.usuario_sk AS truncated_id,
+        (to_jsonb(o) - 'churn_label') AS original_row,
+        (to_jsonb(t) - 'churn_label') AS truncated_row
+    FROM original o
+    FULL OUTER JOIN truncated t
+      ON o.cut_name = t.cut_name
+     AND o.usuario_sk = t.usuario_sk
 )
 SELECT
-    (SELECT COUNT(*) FROM original) AS original_users,
-    (SELECT COUNT(*) FROM truncated) AS truncated_users,
+    (SELECT COUNT(*) FROM original),
+    (SELECT COUNT(*) FROM truncated),
     (
         SELECT COUNT(*)
-        FROM original o
-        FULL OUTER JOIN truncated t
-          ON o.cut_name = t.cut_name
-         AND o.usuario_sk = t.usuario_sk
-        WHERE o.usuario_sk IS NULL
-           OR t.usuario_sk IS NULL
-           OR (to_jsonb(o) - 'churn_label')
-              IS DISTINCT FROM
-              (to_jsonb(t) - 'churn_label')
-    ) AS users_with_differences;
+        FROM comparison
+        WHERE original_id IS NULL
+           OR truncated_id IS NULL
+           OR original_row IS DISTINCT FROM truncated_row
+    );
 """
 
-# Ejecutar la auditoría mediante la conexión existente de PostgreSQL
-import subprocess
-
-connection = None
-
-# Recuperar la contraseña desde el contenedor, sin imprimirla
-result = subprocess.run(
-    [
-        "docker", "exec",
-        "postgres-red-metropolitana-p2",
-        "printenv", "POSTGRES_PASSWORD"
-    ],
-    capture_output=True,
-    text=True,
-    check=True
-)
-
-password = result.stdout.strip()
-
-if not password:
-    sys.exit("ERROR: No se encontró POSTGRES_PASSWORD.")
-
+# Conexión a PostgreSQL mediante .env
 connection = psycopg2.connect(
-    host="localhost",
-    port=5434,
-    dbname="red_metropolitana_p2",
-    user="red_admin",
-    password=password,
+    host=os.environ.get("POSTGRES_HOST", "localhost"),
+    port=int(os.environ.get("POSTGRES_PORT", "5432")),
+    dbname=os.environ["POSTGRES_DB"],
+    user=os.environ["POSTGRES_USER"],
+    password=os.environ["POSTGRES_PASSWORD"]
 )
 
 try:
     with connection.cursor() as cursor:
-        cursor.execute(audit_sql)
+        cursor.execute(audit_query)
         original, truncated, differences = cursor.fetchone()
-
-    print("\n=== AUDITORÍA DE FUGA TEMPORAL — CORTE A ===")
-    print(f"Usuarios originales: {original}")
-    print(f"Usuarios con datos recortados: {truncated}")
-    print(f"Usuarios con diferencias: {differences}")
-
-    if original == truncated and differences == 0:
-        print("RESULTADO: PASS — Sin diferencias en las características.")
-    else:
-        print("RESULTADO: REVISAR — Se detectaron diferencias.")
 finally:
     connection.close()
+
+# Mostrar resultados
+print("\n=== AUDITORÍA DE FUGA TEMPORAL ===")
+print(f"Fecha de corte: {CUTOFF_A}")
+print(f"Filas originales: {original}")
+print(f"Filas recortadas: {truncated}")
+print(f"Diferencias: {differences}")
+
+if original == truncated and differences == 0:
+    print("RESULTADO: PASS")
+    print("No se detectó fuga temporal en las features.")
+else:
+    print("RESULTADO: FAIL")
+    sys.exit(1)

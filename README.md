@@ -745,3 +745,95 @@ base de datos aislada.
 - `dbt_red_metropolitana/docs/churn/model_evaluation.md`
 - `dbt_red_metropolitana/docs/churn/phase1_completion.md`
 - `dbt_red_metropolitana/outputs/churn/regularization_curve_A.png`
+
+
+### Requisitos para ejecutar el Proyecto 02
+
+- Python 3.12
+- Docker Desktop
+- PostgreSQL
+- Apache Kafka
+- dbt-core y dbt-postgres
+- Bibliotecas de Python indicadas en `requirements.txt`
+
+### Instalación
+
+Desde la raíz del repositorio:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Configurar el archivo `.env` a partir de `.env.example`, utilizando las credenciales de PostgreSQL y una clave `USUARIO_SALT` segura.
+
+No subir el archivo `.env` al repositorio.
+
+### Iniciar los servicios
+
+Desde la raíz del proyecto:
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Verificar que PostgreSQL y Kafka estén funcionando.
+
+### Validar los datos de entrada
+
+Desde `dbt_red_metropolitana`:
+
+```bash
+python scripts/run_pipeline_p2.py --mode validate
+```
+
+Esta operación valida los archivos originales y los registros de Bronze sin reconstruir las tablas.
+
+### Construir los modelos de abandono
+
+```bash
+dbt run --select +churn_features --profiles-dir .
+dbt test --select churn_population_labels churn_features --profiles-dir .
+```
+
+### Auditar la fuga temporal
+
+```bash
+python scripts/audit_temporal_leakage.py
+```
+
+Resultado obtenido para el corte A:
+
+- Usuarios originales: 59,796.
+- Usuarios recalculados: 59,796.
+- Diferencias detectadas: 0.
+- Auditoría: PASS.
+
+### Entrenar el modelo
+
+```bash
+python scripts/train_churn.py
+```
+
+El entrenamiento utiliza únicamente el corte A y validación cruzada estratificada de cinco particiones.
+
+El modelo seleccionado fue regresión logística L2, con C = 0.001 y PR-AUC promedio de 0.429148.
+
+### Reconstrucción independiente
+
+El script `run_pipeline_p2.py` permite ejecutar una reconstrucción con `--mode rebuild-dbt`.
+
+Antes de utilizarlo, debe existir la base de datos `red_metropolitana_p2_rebuild_test` y no debe existir el directorio `lake/bronze_rebuild_test`.
+
+La reconstrucción utiliza esa base de prueba y un directorio Bronze independiente. No debe ejecutarse sin comprobar previamente las variables de conexión.
+
+### Evidencias técnicas
+
+- `dbt_red_metropolitana/docs/churn/phase1_completion.md`
+- `dbt_red_metropolitana/docs/churn/feature_dictionary.md`
+- `dbt_red_metropolitana/outputs/churn/regularization_curve_A.png`
+- `dbt_red_metropolitana/outputs/churn/evidencias/pipeline_timings.csv`
+
+La evaluación temporal del corte B se realizó con el modelo entrenado en A, sin utilizar B para seleccionar hiperparámetros.

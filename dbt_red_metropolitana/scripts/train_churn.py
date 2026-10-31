@@ -250,16 +250,21 @@ print(
     ].to_string(index=False)
 )
 
-# Generar gráfica de PR-AUC frente a C
+# Generar gráfica de PR-AUC frente a lambda
+# Lambda representa el inverso del parámetro C
 plt.figure(figsize=(9, 5))
 
 for penalty in ["l1", "l2"]:
     subset = regularization_df[
         regularization_df["penalty"] == penalty
-    ].sort_values("C")
+    ].copy()
+
+    # Calcular lambda a partir de C
+    subset["lambda"] = 1 / subset["C"]
+    subset = subset.sort_values("lambda")
 
     plt.errorbar(
-        subset["C"],
+        subset["lambda"],
         subset["pr_auc_mean"],
         yerr=subset["pr_auc_std"],
         marker="o",
@@ -268,16 +273,18 @@ for penalty in ["l1", "l2"]:
     )
 
 plt.xscale("log")
-plt.xlabel("C (inverso de la regularización)")
+plt.xlabel("λ = 1/C (intensidad de regularización)")
 plt.ylabel("PR-AUC promedio")
 plt.title("Validación cruzada de regularización — Corte A")
 plt.legend()
 plt.grid(alpha=0.3)
 plt.tight_layout()
+
 plt.savefig(
     OUTPUT_DIR / "regularization_curve_A.png",
     dpi=200,
 )
+
 plt.close()
 
 # Entrenar el mejor modelo logístico usando todo el corte A
