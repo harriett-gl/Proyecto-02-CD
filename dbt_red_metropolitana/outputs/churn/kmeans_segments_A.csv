@@ -1,0 +1,3 @@
+segment,users,churn_rate,trips_28d,trips_7d,active_days_28d,days_since_last_trip,transport_modes_count,is_multimodal,transmetro_trips,transurbano_trips,metroriel_trips,aerometro_trips,weekend_trip_ratio,peak_hour_trip_ratio,total_spending_gtq,average_spending_gtq,percentage
+0,48956,0.14686657406650871,7.0,2.0,6.0,4.0,1.0,0.0,0.0,2.0,0.0,0.0,0.125,0.0556,11.4,1.3,81.87169710348519
+1,10840,0.01900369003690037,37.0,10.0,18.0,1.0,2.0,1.0,2.0,19.0,0.0,0.0,0.1316,0.2174,56.0,1.3,18.128302896514818

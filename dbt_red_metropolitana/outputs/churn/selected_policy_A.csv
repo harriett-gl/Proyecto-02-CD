@@ -1,0 +1,2 @@
+model,score_column,threshold,cost_gtq,benefit_gtq,effectiveness,selection_cut
+Random Forest,oof_random_forest,0.3333333333333333,5.0,60.0,0.25,A

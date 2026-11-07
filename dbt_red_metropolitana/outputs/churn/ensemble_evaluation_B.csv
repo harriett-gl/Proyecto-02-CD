@@ -1,0 +1,2 @@
+model,training_cut,evaluation_cut,threshold,users,pr_auc,precision,recall,tn,fp,fn,tp,contacts,expected_gain_gtq,evaluated_at_utc
+Random Forest,A,B,0.3333333333333333,58372,0.39949017761330086,0.43242811501597445,0.40578623894468596,48148,3553,3964,2707,6260,9305.0,2026-10-31T19:42:18.772284+00:00
